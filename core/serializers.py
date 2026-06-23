@@ -6,7 +6,39 @@ from .models import (
     Employer
 )
 
+import os
 
+
+class ResumeSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Candidate
+        fields = ['resume']
+
+    def validate_resume(self, value):
+
+        allowed_extensions = [
+            '.pdf',
+            '.doc',
+            '.docx'
+        ]
+
+        extension = os.path.splitext(
+            value.name
+        )[1].lower()
+
+        if extension not in allowed_extensions:
+            raise serializers.ValidationError(
+                "Only PDF, DOC and DOCX files are allowed."
+            )
+
+        if value.size > 5 * 1024 * 1024:
+            raise serializers.ValidationError(
+                "File size must be less than 5 MB."
+            )
+
+        return value
+    
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
         write_only=True,

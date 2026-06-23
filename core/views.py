@@ -15,7 +15,8 @@ from .serializers import (
     JobSerializer,
     RegisterSerializer,
     CandidateSerializer,
-    EmployerSerializer
+    EmployerSerializer,
+    ResumeSerializer
 )
 
 from .permissions import (
@@ -373,4 +374,38 @@ class EmployerProfileAPIView(APIView):
             {
                 "message": "Profile deactivated successfully."
             }
+        )
+class ResumeUploadAPIView(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsCandidate
+    ]
+
+    def post(self, request):
+
+        candidate = Candidate.objects.get(
+            user=request.user
+        )
+
+        serializer = ResumeSerializer(
+            candidate,
+            data=request.data,
+            partial=True
+        )
+
+        if serializer.is_valid():
+
+            serializer.save()
+
+            return Response(
+                {
+                    "message": "Resume uploaded successfully",
+                    "resume": candidate.resume.url
+                }
+            )
+
+        return Response(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST
         )

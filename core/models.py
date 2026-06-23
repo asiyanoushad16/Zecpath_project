@@ -91,6 +91,12 @@ class Candidate(models.Model):
         default=True
     )
 
+    resume = models.FileField(
+        upload_to='resumes/',
+        blank=True,
+        null=True
+    )
+
     def __str__(self):
         return self.full_name
 
