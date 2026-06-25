@@ -3,6 +3,12 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.generics import ListAPIView
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.filters import SearchFilter
+from django_filters.rest_framework import DjangoFilterBackend
+from .models import User
+from .serializers import UserSerializer
 
 from .models import (
     Job,
@@ -16,7 +22,8 @@ from .serializers import (
     RegisterSerializer,
     CandidateSerializer,
     EmployerSerializer,
-    ResumeSerializer
+    ResumeSerializer,
+    UserSerializer
 )
 
 from .permissions import (
@@ -86,20 +93,6 @@ class LogoutAPIView(APIView):
             )
 
 
-class JobListAPIView(APIView):
-
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-
-        jobs = Job.objects.all()
-
-        serializer = JobSerializer(
-            jobs,
-            many=True
-        )
-
-        return Response(serializer.data)
 
 
 class JobCreateAPIView(APIView):
@@ -409,3 +402,50 @@ class ResumeUploadAPIView(APIView):
             serializer.errors,
             status=status.HTTP_400_BAD_REQUEST
         )
+class JobPagination(PageNumberPagination):
+
+    page_size = 5
+
+
+class JobListAPIView(ListAPIView):
+
+    permission_classes = [IsAuthenticated]
+
+    queryset = Job.objects.select_related(
+        'employer'
+    ).all()
+
+    serializer_class = JobSerializer
+
+    pagination_class = JobPagination
+
+    filter_backends = [
+        DjangoFilterBackend,
+        SearchFilter
+    ]
+
+    filterset_fields = [
+        'salary'
+    ]
+
+    search_fields = [
+        'title',
+        'company'
+    ]
+
+
+class UserListAPIView(ListAPIView):
+
+    permission_classes = [IsAuthenticated]
+
+    queryset = User.objects.all()
+
+    serializer_class = UserSerializer
+
+    filter_backends = [
+        DjangoFilterBackend
+    ]
+
+    filterset_fields = [
+        'role'
+    ]

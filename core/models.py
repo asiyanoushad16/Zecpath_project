@@ -107,8 +107,17 @@ class Job(models.Model):
         on_delete=models.CASCADE,
         related_name='jobs'
     )
-    title = models.CharField(max_length=100)
-    company = models.CharField(max_length=100)
+
+    title = models.CharField(
+        max_length=100,
+        db_index=True
+    )
+
+    company = models.CharField(
+        max_length=100,
+        db_index=True
+    )
+
     salary = models.IntegerField()
 
     def __str__(self):

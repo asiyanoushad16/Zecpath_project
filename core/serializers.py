@@ -125,12 +125,6 @@ class EmployerSerializer(serializers.ModelSerializer):
         model = Employer
         fields = '__all__'
 
-        extra_kwargs = {
-            'user': {
-                'read_only': True
-            }
-        }
-
     def validate_company_size(self, value):
 
         if value <= 0:
@@ -139,4 +133,15 @@ class EmployerSerializer(serializers.ModelSerializer):
             )
 
         return value
+
+class UserSerializer(serializers.ModelSerializer):
+
+        class Meta:
+            model = User
+            fields = [
+                'id',
+                'username',
+                'email',
+                'role'
+            ]
     
