@@ -104,13 +104,19 @@ class JobCreateAPIView(APIView):
 
     def post(self, request):
 
+        employer = Employer.objects.get(
+            user=request.user
+        )
+
         serializer = JobSerializer(
             data=request.data
         )
 
         if serializer.is_valid():
 
-            serializer.save()
+            serializer.save(
+                employer=employer
+            )
 
             return Response(
                 serializer.data,
@@ -121,8 +127,83 @@ class JobCreateAPIView(APIView):
             serializer.errors,
             status=status.HTTP_400_BAD_REQUEST
         )
+class JobUpdateAPIView(APIView):
 
+    permission_classes = [
+        IsAuthenticated,
+        IsEmployer
+    ]
 
+    def put(self, request, job_id):
+
+        employer = Employer.objects.get(
+            user=request.user
+        )
+
+        job = Job.objects.get(
+            id=job_id
+        )
+
+        if job.employer != employer:
+
+            return Response(
+                {
+                    "error": "Permission denied"
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        serializer = JobSerializer(
+            job,
+            data=request.data,
+            partial=True
+        )
+
+        if serializer.is_valid():
+
+            serializer.save()
+
+            return Response(serializer.data)
+
+        return Response(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST
+        )
+class JobStatusAPIView(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsEmployer
+    ]
+
+    def put(self, request, job_id):
+
+        employer = Employer.objects.get(
+            user=request.user
+        )
+
+        job = Job.objects.get(
+            id=job_id
+        )
+
+        if job.employer != employer:
+
+            return Response(
+                {
+                    "error": "Permission denied"
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        job.is_active = not job.is_active
+        job.save()
+
+        return Response(
+            {
+                "message": "Job status updated successfully",
+                "is_active": job.is_active
+            }
+        )
 class CandidateAPIView(APIView):
 
     permission_classes = [
@@ -413,7 +494,9 @@ class JobListAPIView(ListAPIView):
 
     queryset = Job.objects.select_related(
         'employer'
-    ).all()
+    ).filter(
+    is_active=True
+)
 
     serializer_class = JobSerializer
 

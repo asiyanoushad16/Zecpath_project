@@ -85,9 +85,33 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 class JobSerializer(serializers.ModelSerializer):
 
+    company_name = serializers.CharField(
+        source="employer.company_name",
+        read_only=True
+    )
+
     class Meta:
         model = Job
-        fields = '__all__'
+        fields = [
+            "id",
+            "title",
+            "description",
+            "skills",
+            "experience",
+            "salary",
+            "location",
+            "job_type",
+            "company_name",
+            "employer"
+        ]
+
+        extra_kwargs = {
+            "employer": {
+                "read_only": True
+            }
+        }
+
+
 class CandidateSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -125,6 +149,12 @@ class EmployerSerializer(serializers.ModelSerializer):
         model = Employer
         fields = '__all__'
 
+        extra_kwargs = {
+            'user': {
+                'read_only': True
+            }
+        }
+
     def validate_company_size(self, value):
 
         if value <= 0:
@@ -133,7 +163,6 @@ class EmployerSerializer(serializers.ModelSerializer):
             )
 
         return value
-
 class UserSerializer(serializers.ModelSerializer):
 
         class Meta:

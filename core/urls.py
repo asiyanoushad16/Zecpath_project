@@ -12,7 +12,9 @@ from .views import (
     CandidateProfileAPIView,
     EmployerProfileAPIView,
     ResumeUploadAPIView,
-    UserListAPIView
+    UserListAPIView,
+    JobUpdateAPIView,
+    JobStatusAPIView,
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -80,5 +82,14 @@ path(
 path(
     'users/',
     UserListAPIView.as_view()
+),
+path(
+    'jobs/<int:job_id>/update/',
+    JobUpdateAPIView.as_view()
+),
+
+path(
+    'jobs/<int:job_id>/status/',
+    JobStatusAPIView.as_view()
 ),
 ]
