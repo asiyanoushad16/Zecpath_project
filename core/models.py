@@ -137,10 +137,15 @@ class Job(models.Model):
         choices=JOB_TYPE_CHOICES
     )
 
-
+    featured = models.BooleanField(
+    default=False
+    )
+    
     is_active = models.BooleanField(
         default=True
     )
+    
+  
 
     created_at = models.DateTimeField(
         auto_now_add=True
@@ -154,17 +159,38 @@ class Job(models.Model):
         return self.title
 
 class Application(models.Model):
+
+    STATUS_CHOICES = [
+        ('Applied', 'Applied'),
+        ('Under Review', 'Under Review'),
+        ('Shortlisted', 'Shortlisted'),
+        ('Rejected', 'Rejected'),
+    ]
+
     candidate = models.ForeignKey(
         Candidate,
         on_delete=models.CASCADE
     )
+
     job = models.ForeignKey(
         Job,
         on_delete=models.CASCADE
     )
+
+    resume_snapshot = models.FileField(
+        upload_to='application_resumes/',
+        blank=True,
+        null=True
+    )
+
     status = models.CharField(
-        max_length=50,
+        max_length=20,
+        choices=STATUS_CHOICES,
         default='Applied'
+    )
+
+    applied_at = models.DateTimeField(
+        auto_now_add=True
     )
 
     def __str__(self):

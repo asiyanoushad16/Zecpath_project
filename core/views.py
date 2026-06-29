@@ -23,7 +23,8 @@ from .serializers import (
     CandidateSerializer,
     EmployerSerializer,
     ResumeSerializer,
-    UserSerializer
+    UserSerializer,
+    ApplicationSerializer
 )
 
 from .permissions import (
@@ -241,20 +242,47 @@ class ApplyJobAPIView(APIView):
 
     def post(self, request, job_id):
 
-        job = Job.objects.get(id=job_id)
+        job = Job.objects.get(
+            id=job_id
+        )
+
+        if not job.is_active:
+
+            return Response(
+                {
+                    "error": "This job is no longer active."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         candidate = Candidate.objects.get(
             user=request.user
         )
 
-        Application.objects.create(
+        if Application.objects.filter(
             candidate=candidate,
             job=job
+        ).exists():
+
+            return Response(
+                {
+                    "error": "You have already applied for this job."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        Application.objects.create(
+            candidate=candidate,
+            job=job,
+            resume_snapshot=candidate.resume
         )
 
-        return Response({
-            "message": "Applied successfully"
-        })
+        return Response(
+            {
+                "message": "Applied successfully"
+            },
+            status=status.HTTP_201_CREATED
+        )
 
 
 class CandidateProfileAPIView(APIView):
@@ -495,8 +523,8 @@ class JobListAPIView(ListAPIView):
     queryset = Job.objects.select_related(
         'employer'
     ).filter(
-    is_active=True
-)
+        is_active=True
+    )
 
     serializer_class = JobSerializer
 
@@ -507,14 +535,51 @@ class JobListAPIView(ListAPIView):
         SearchFilter
     ]
 
-    filterset_fields = [
-        'salary'
-    ]
+    filterset_fields = {
+        'experience': ['exact', 'gte', 'lte'],
+        'salary': ['exact', 'gte', 'lte'],
+        'location': ['exact'],
+        'job_type': ['exact']
+    }
 
     search_fields = [
         'title',
-        'company'
+        'skills',
+        'description'
     ]
+    
+
+
+class LatestJobAPIView(ListAPIView):
+
+    permission_classes = [IsAuthenticated]
+
+    serializer_class = JobSerializer
+
+    pagination_class = JobPagination
+
+    queryset = Job.objects.select_related(
+        'employer'
+    ).filter(
+        is_active=True
+    ).order_by(
+        '-created_at'
+    )[:10]
+    
+class FeaturedJobAPIView(ListAPIView):
+
+    permission_classes = [IsAuthenticated]
+
+    queryset = Job.objects.select_related(
+        'employer'
+    ).filter(
+        featured=True,
+        is_active=True
+    )
+
+    serializer_class = JobSerializer
+
+    pagination_class = JobPagination
 
 
 class UserListAPIView(ListAPIView):
@@ -532,3 +597,65 @@ class UserListAPIView(ListAPIView):
     filterset_fields = [
         'role'
     ]
+class ApplicationHistoryAPIView(ListAPIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsCandidate
+    ]
+
+    serializer_class = ApplicationSerializer
+
+    def get_queryset(self):
+
+        candidate = Candidate.objects.get(
+            user=self.request.user
+        )
+
+        return Application.objects.select_related(
+            'job',
+            'candidate'
+        ).filter(
+            candidate=candidate
+        ).order_by(
+            '-applied_at'
+        )
+class ApplicationStatusAPIView(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsEmployer
+    ]
+
+    def put(self, request, application_id):
+
+        employer = Employer.objects.get(
+            user=request.user
+        )
+
+        application = Application.objects.get(
+            id=application_id
+        )
+
+        # Check that the application belongs to this employer's job
+        if application.job.employer != employer:
+
+            return Response(
+                {
+                    "error": "Permission denied."
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        application.status = request.data.get(
+            "status"
+        )
+
+        application.save()
+
+        return Response(
+            {
+                "message": "Application status updated successfully.",
+                "status": application.status
+            }
+        )

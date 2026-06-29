@@ -15,6 +15,10 @@ from .views import (
     UserListAPIView,
     JobUpdateAPIView,
     JobStatusAPIView,
+    LatestJobAPIView,
+    FeaturedJobAPIView,
+    ApplicationHistoryAPIView,
+    ApplicationStatusAPIView,
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -61,10 +65,7 @@ path(
     'admin-dashboard/',
     AdminAPIView.as_view()
    ),
-path(
-    'jobs/<int:job_id>/apply/',
-    ApplyJobAPIView.as_view()
-),
+
 
 path(
     'candidate/profile/',
@@ -91,5 +92,26 @@ path(
 path(
     'jobs/<int:job_id>/status/',
     JobStatusAPIView.as_view()
+),
+path(
+    'jobs/latest/',
+    LatestJobAPIView.as_view()
+),
+
+path(
+    'jobs/featured/',
+    FeaturedJobAPIView.as_view()
+),
+path(
+    'jobs/<int:job_id>/apply/',
+    ApplyJobAPIView.as_view()
+),
+path(
+    'applications/',
+    ApplicationHistoryAPIView.as_view()
+),
+path(
+    'applications/<int:application_id>/status/',
+    ApplicationStatusAPIView.as_view()
 ),
 ]

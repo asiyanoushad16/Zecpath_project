@@ -3,7 +3,9 @@ from .models import (
     User,
     Job,
     Candidate,
-    Employer
+    Employer,
+    Application
+    
 )
 
 import os
@@ -101,6 +103,7 @@ class JobSerializer(serializers.ModelSerializer):
             "salary",
             "location",
             "job_type",
+            "featured",
             "company_name",
             "employer"
         ]
@@ -173,4 +176,33 @@ class UserSerializer(serializers.ModelSerializer):
                 'email',
                 'role'
             ]
-    
+class ApplicationSerializer(serializers.ModelSerializer):
+
+    candidate_name = serializers.CharField(
+        source="candidate.full_name",
+        read_only=True
+    )
+
+    job_title = serializers.CharField(
+        source="job.title",
+        read_only=True
+    )
+
+    class Meta:
+        model = Application
+        fields = [
+            "id",
+            "candidate",
+            "candidate_name",
+            "job",
+            "job_title",
+            "resume_snapshot",
+            "status",
+            "applied_at"
+        ]
+
+        extra_kwargs = {
+            "candidate": {
+                "read_only": True
+            }
+        }
