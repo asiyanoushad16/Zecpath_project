@@ -198,7 +198,8 @@ class ApplicationSerializer(serializers.ModelSerializer):
             "job_title",
             "resume_snapshot",
             "status",
-            "applied_at"
+            "applied_at",
+            "updated_at"
         ]
 
         extra_kwargs = {

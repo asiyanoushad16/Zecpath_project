@@ -621,41 +621,73 @@ class ApplicationHistoryAPIView(ListAPIView):
             '-applied_at'
         )
 class ApplicationStatusAPIView(APIView):
+ def put(self, request, application_id):
 
-    permission_classes = [
-        IsAuthenticated,
-        IsEmployer
-    ]
+    employer = Employer.objects.get(
+        user=request.user
+    )
 
-    def put(self, request, application_id):
+    application = Application.objects.get(
+        id=application_id
+    )
 
-        employer = Employer.objects.get(
-            user=request.user
-        )
-
-        application = Application.objects.get(
-            id=application_id
-        )
-
-        # Check that the application belongs to this employer's job
-        if application.job.employer != employer:
-
-            return Response(
-                {
-                    "error": "Permission denied."
-                },
-                status=status.HTTP_403_FORBIDDEN
-            )
-
-        application.status = request.data.get(
-            "status"
-        )
-
-        application.save()
+    if application.job.employer != employer:
 
         return Response(
             {
-                "message": "Application status updated successfully.",
-                "status": application.status
-            }
+                "error": "Permission denied."
+            },
+            status=status.HTTP_403_FORBIDDEN
         )
+
+    new_status = request.data.get("status")
+
+    valid_transitions = {
+
+        "Applied": [
+            "Under Review",
+            "Rejected"
+        ],
+
+        "Under Review": [
+            "Shortlisted",
+            "Rejected"
+        ],
+
+        "Shortlisted": [
+            "Interview Scheduled",
+            "Rejected"
+        ],
+
+        "Interview Scheduled": [
+            "Selected",
+            "Rejected"
+        ],
+
+        "Selected": [],
+
+        "Rejected": []
+    }
+
+    if new_status not in valid_transitions[
+        application.status
+    ]:
+
+        return Response(
+            {
+                "error": "Invalid status transition."
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    application.status = new_status
+
+    application.save()
+
+    return Response(
+        {
+            "message": "Application status updated successfully.",
+            "status": application.status,
+            "updated_at": application.updated_at
+        }
+    )

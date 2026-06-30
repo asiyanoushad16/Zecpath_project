@@ -164,6 +164,8 @@ class Application(models.Model):
         ('Applied', 'Applied'),
         ('Under Review', 'Under Review'),
         ('Shortlisted', 'Shortlisted'),
+        ('Interview Scheduled', 'Interview Scheduled'),
+        ('Selected', 'Selected'),
         ('Rejected', 'Rejected'),
     ]
 
@@ -184,13 +186,17 @@ class Application(models.Model):
     )
 
     status = models.CharField(
-        max_length=20,
+        max_length=30,          # Changed from 20 to 30
         choices=STATUS_CHOICES,
         default='Applied'
     )
 
     applied_at = models.DateTimeField(
         auto_now_add=True
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True
     )
 
     def __str__(self):
