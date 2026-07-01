@@ -9,6 +9,8 @@ from rest_framework.filters import SearchFilter
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import User
 from .serializers import UserSerializer
+from django.db.models import Count
+
 
 from .models import (
     Job,
@@ -691,3 +693,122 @@ class ApplicationStatusAPIView(APIView):
             "updated_at": application.updated_at
         }
     )
+class EmployerJobListAPIView(ListAPIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsEmployer
+    ]
+
+    serializer_class = JobSerializer
+
+    def get_queryset(self):
+
+        employer = Employer.objects.get(
+            user=self.request.user
+        )
+
+        return Job.objects.select_related(
+            'employer'
+        ).filter(
+            employer=employer
+        )
+
+class ApplicantListAPIView(ListAPIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsEmployer
+    ]
+
+    serializer_class = ApplicationSerializer
+
+    filter_backends = [
+        SearchFilter
+    ]
+
+    search_fields = [
+        "candidate__full_name"
+    ]
+
+    def get_queryset(self):
+
+        employer = Employer.objects.get(
+            user=self.request.user
+        )
+
+        job = Job.objects.get(
+            id=self.kwargs["job_id"]
+        )
+
+        # Check job ownership
+        if job.employer != employer:
+
+            raise PermissionDenied(
+                "Permission denied."
+            )
+
+        queryset = Application.objects.select_related(
+            "candidate",
+            "job"
+        ).filter(
+            job=job
+        )
+
+        print("Before filter:", queryset.count())
+
+        status = self.request.query_params.get(
+            "status"
+        )
+
+        print("Status received:", status)
+
+        if status:
+
+            queryset = queryset.filter(
+                status=status
+            )
+
+        print("After filter:", queryset.count())
+
+        return queryset
+class EmployerDashboardAPIView(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsEmployer
+    ]
+
+    def get(self, request):
+
+        employer = Employer.objects.get(
+            user=request.user
+        )
+
+        jobs = Job.objects.filter(
+            employer=employer
+        )
+
+        total_jobs = jobs.count()
+
+        active_jobs = jobs.filter(
+            is_active=True
+        ).count()
+
+        total_applications = Application.objects.filter(
+            job__employer=employer
+        ).count()
+
+        shortlisted_candidates = Application.objects.filter(
+            job__employer=employer,
+            status="Shortlisted"
+        ).count()
+
+        return Response(
+            {
+                "total_jobs": total_jobs,
+                "active_jobs": active_jobs,
+                "total_applications": total_applications,
+                "shortlisted_candidates": shortlisted_candidates
+            }
+        )

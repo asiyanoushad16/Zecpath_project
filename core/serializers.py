@@ -207,3 +207,4 @@ class ApplicationSerializer(serializers.ModelSerializer):
                 "read_only": True
             }
         }
+    
