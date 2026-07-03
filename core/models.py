@@ -186,7 +186,7 @@ class Application(models.Model):
     )
 
     status = models.CharField(
-        max_length=30,          # Changed from 20 to 30
+        max_length=30,         
         choices=STATUS_CHOICES,
         default='Applied'
     )
@@ -201,3 +201,49 @@ class Application(models.Model):
 
     def __str__(self):
         return f"{self.candidate} - {self.job}"
+class SavedJob(models.Model):
+
+    candidate = models.ForeignKey(
+        Candidate,
+        on_delete=models.CASCADE
+    )
+
+    job = models.ForeignKey(
+        Job,
+        on_delete=models.CASCADE
+    )
+
+    saved_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    class Meta:
+
+        unique_together = [
+            "candidate",
+            "job"
+        ]
+
+    def __str__(self):
+
+        return f"{self.candidate} - {self.job}"
+class ApplicationTimeline(models.Model):
+
+    application = models.ForeignKey(
+        Application,
+        on_delete=models.CASCADE,
+        related_name="timeline"
+    )
+
+    status = models.CharField(
+        max_length=30,
+        choices=Application.STATUS_CHOICES
+    )
+
+    changed_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    def __str__(self):
+
+        return f"{self.application} - {self.status}"

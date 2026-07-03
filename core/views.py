@@ -13,10 +13,13 @@ from django.db.models import Count
 
 
 from .models import (
-    Job,
-    Candidate,
+    User,
     Employer,
-    Application
+    Candidate,
+    Job,
+    Application,
+    SavedJob,
+    ApplicationTimeline,
 )
 
 from .serializers import (
@@ -26,7 +29,10 @@ from .serializers import (
     EmployerSerializer,
     ResumeSerializer,
     UserSerializer,
-    ApplicationSerializer
+    ApplicationSerializer,
+    SavedJobSerializer,
+    ApplicationTimelineSerializer
+    
 )
 
 from .permissions import (
@@ -272,6 +278,24 @@ class ApplyJobAPIView(APIView):
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+        application = Application.objects.create(
+            candidate=candidate,
+            job=job,
+            resume_snapshot=candidate.resume
+        )
+
+        ApplicationTimeline.objects.create(
+            application=application,
+            status="Applied"
+        )
+
+        return Response(
+            {
+                "message": "Application submitted successfully."
+            },
+            status=status.HTTP_201_CREATED
+        )
 
         Application.objects.create(
             candidate=candidate,
@@ -623,76 +647,91 @@ class ApplicationHistoryAPIView(ListAPIView):
             '-applied_at'
         )
 class ApplicationStatusAPIView(APIView):
- def put(self, request, application_id):
 
-    employer = Employer.objects.get(
-        user=request.user
-    )
+    permission_classes = [
+        IsAuthenticated,
+        IsEmployer
+    ]
 
-    application = Application.objects.get(
-        id=application_id
-    )
+    def put(self, request, application_id):
 
-    if application.job.employer != employer:
-
-        return Response(
-            {
-                "error": "Permission denied."
-            },
-            status=status.HTTP_403_FORBIDDEN
+        employer = Employer.objects.get(
+            user=request.user
         )
 
-    new_status = request.data.get("status")
-
-    valid_transitions = {
-
-        "Applied": [
-            "Under Review",
-            "Rejected"
-        ],
-
-        "Under Review": [
-            "Shortlisted",
-            "Rejected"
-        ],
-
-        "Shortlisted": [
-            "Interview Scheduled",
-            "Rejected"
-        ],
-
-        "Interview Scheduled": [
-            "Selected",
-            "Rejected"
-        ],
-
-        "Selected": [],
-
-        "Rejected": []
-    }
-
-    if new_status not in valid_transitions[
-        application.status
-    ]:
-
-        return Response(
-            {
-                "error": "Invalid status transition."
-            },
-            status=status.HTTP_400_BAD_REQUEST
+        application = Application.objects.get(
+            id=application_id
         )
 
-    application.status = new_status
+        if application.job.employer != employer:
 
-    application.save()
+            return Response(
+                {
+                    "error": "Permission denied."
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
 
-    return Response(
-        {
-            "message": "Application status updated successfully.",
-            "status": application.status,
-            "updated_at": application.updated_at
+        new_status = request.data.get(
+            "status",
+            ""
+        ).strip()
+
+        valid_transitions = {
+
+            "Applied": [
+                "Under Review",
+                "Rejected"
+            ],
+
+            "Under Review": [
+                "Shortlisted",
+                "Rejected"
+            ],
+
+            "Shortlisted": [
+                "Interview Scheduled",
+                "Rejected"
+            ],
+
+            "Interview Scheduled": [
+                "Selected",
+                "Rejected"
+            ],
+
+            "Selected": [],
+
+            "Rejected": []
         }
-    )
+
+        if new_status not in valid_transitions[
+            application.status
+        ]:
+
+            return Response(
+                {
+                    "error": "Invalid status transition."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        application.status = new_status
+
+        application.save()
+
+        # Save timeline
+        ApplicationTimeline.objects.create(
+            application=application,
+            status=new_status
+        )
+
+        return Response(
+            {
+                "message": "Application status updated successfully.",
+                "status": application.status,
+                "updated_at": application.updated_at
+            }
+        )
 class EmployerJobListAPIView(ListAPIView):
 
     permission_classes = [
@@ -811,4 +850,138 @@ class EmployerDashboardAPIView(APIView):
                 "total_applications": total_applications,
                 "shortlisted_candidates": shortlisted_candidates
             }
+        )
+class SaveJobAPIView(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsCandidate
+    ]
+
+    def post(self, request, job_id):
+
+        candidate = Candidate.objects.get(
+            user=request.user
+        )
+
+        job = Job.objects.get(
+            id=job_id
+        )
+
+        if SavedJob.objects.filter(
+            candidate=candidate,
+            job=job
+        ).exists():
+
+            return Response(
+                {
+                    "error": "Job already saved."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        SavedJob.objects.create(
+            candidate=candidate,
+            job=job
+        )
+
+        return Response(
+            {
+                "message": "Job saved successfully."
+            },
+            status=status.HTTP_201_CREATED
+        )
+class SavedJobListAPIView(ListAPIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsCandidate
+    ]
+
+    serializer_class = SavedJobSerializer
+
+    def get_queryset(self):
+
+        candidate = Candidate.objects.get(
+            user=self.request.user
+        )
+
+        return SavedJob.objects.select_related(
+            "job",
+            "job__employer"
+        ).filter(
+            candidate=candidate
+        ).order_by(
+            "-saved_at"
+        )
+class RecommendedJobAPIView(ListAPIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsCandidate
+    ]
+
+    serializer_class = JobSerializer
+
+    def get_queryset(self):
+
+        candidate = Candidate.objects.get(
+            user=self.request.user
+        )
+
+        skills = [
+            skill.strip().lower()
+            for skill in candidate.skills.split(",")
+        ]
+
+        queryset = Job.objects.select_related(
+            "employer"
+        ).filter(
+            is_active=True
+        )
+
+        recommended_jobs = []
+
+        for job in queryset:
+
+            job_skills = [
+                skill.strip().lower()
+                for skill in job.skills.split(",")
+            ]
+
+            if any(
+                skill in job_skills
+                for skill in skills
+            ):
+                recommended_jobs.append(
+                    job.id
+                )
+
+        return Job.objects.filter(
+            id__in=recommended_jobs
+        )
+class ApplicationTimelineAPIView(ListAPIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsCandidate
+    ]
+
+    serializer_class = ApplicationTimelineSerializer
+
+    def get_queryset(self):
+
+        candidate = Candidate.objects.get(
+            user=self.request.user
+        )
+
+        application = Application.objects.get(
+            id=self.kwargs["application_id"],
+            candidate=candidate
+        )
+
+        return ApplicationTimeline.objects.filter(
+            application=application
+        ).order_by(
+            "changed_at"
         )

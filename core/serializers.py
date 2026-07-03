@@ -4,7 +4,9 @@ from .models import (
     Job,
     Candidate,
     Employer,
-    Application
+    Application,
+    SavedJob,
+    ApplicationTimeline
     
 )
 
@@ -207,4 +209,42 @@ class ApplicationSerializer(serializers.ModelSerializer):
                 "read_only": True
             }
         }
-    
+class SavedJobSerializer(serializers.ModelSerializer):
+
+    job_title = serializers.CharField(
+        source="job.title",
+        read_only=True
+    )
+
+    company_name = serializers.CharField(
+        source="job.employer.company_name",
+        read_only=True
+    )
+
+    class Meta:
+        model = SavedJob
+        fields = [
+            "id",
+            "job",
+            "job_title",
+            "company_name",
+            "saved_at"
+        ]
+
+        extra_kwargs = {
+            "job": {
+                "read_only": True
+            }
+        }
+class ApplicationTimelineSerializer(
+    serializers.ModelSerializer
+):
+
+    class Meta:
+
+        model = ApplicationTimeline
+
+        fields = [
+            "status",
+            "changed_at"
+        ]
