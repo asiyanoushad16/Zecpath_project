@@ -20,6 +20,7 @@ from .models import (
     Application,
     SavedJob,
     ApplicationTimeline,
+    AdminAuditLog
 )
 
 from .serializers import (
@@ -31,7 +32,8 @@ from .serializers import (
     UserSerializer,
     ApplicationSerializer,
     SavedJobSerializer,
-    ApplicationTimelineSerializer
+    ApplicationTimelineSerializer,
+    AdminAuditLogSerializer
     
 )
 
@@ -985,3 +987,200 @@ class ApplicationTimelineAPIView(ListAPIView):
         ).order_by(
             "changed_at"
         )
+class ApproveEmployerAPIView(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsAdmin
+    ]
+
+    def put(self, request, employer_id):
+
+        employer = Employer.objects.get(
+            id=employer_id
+        )
+
+        employer.verified = True
+
+        employer.save()
+
+        # Insert audit log
+        AdminAuditLog.objects.create(
+            admin=request.user,
+            action=f"Approved employer {employer.company_name}"
+        )
+
+        return Response(
+            {
+                "message": "Employer approved successfully.",
+                "verified": employer.verified
+            },
+            status=status.HTTP_200_OK
+        )
+class BlockUserAPIView(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsAdmin
+    ]
+
+    def put(self, request, user_id):
+
+        user = User.objects.get(
+            id=user_id
+        )
+
+        user.is_active = False
+
+        user.save()
+        AdminAuditLog.objects.create(
+        admin=request.user,
+        action=f"Blocked user {user.username}"
+        )
+
+        return Response(
+            {
+                "message": "User blocked successfully.",
+                "is_active": user.is_active
+            },
+            status=status.HTTP_200_OK
+        )
+class AdminJobListAPIView(ListAPIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsAdmin
+    ]
+
+    serializer_class = JobSerializer
+
+    queryset = Job.objects.select_related(
+        "employer"
+    ).all()
+class DeleteJobAPIView(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsAdmin
+    ]
+
+    def delete(self, request, job_id):
+
+        job = Job.objects.get(
+            id=job_id
+        )
+
+        job_title = job.title
+
+        job.delete()
+
+        AdminAuditLog.objects.create(
+            admin=request.user,
+            action=f"Deleted job '{job_title}'"
+        )
+
+        return Response(
+            {
+                "message": "Job deleted successfully."
+            },
+            status=status.HTTP_200_OK
+        )
+
+
+class AdminJobUpdateAPIView(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsAdmin
+    ]
+
+    def put(self, request, job_id):
+
+        job = Job.objects.get(
+            id=job_id
+        )
+
+        serializer = JobSerializer(
+            job,
+            data=request.data,
+            partial=True
+        )
+
+        if serializer.is_valid():
+
+            serializer.save()
+
+            AdminAuditLog.objects.create(
+                admin=request.user,
+                action=f"Updated job '{job.title}'"
+            )
+
+            return Response(
+                {
+                    "message": "Job updated successfully.",
+                    "data": serializer.data
+                },
+                status=status.HTTP_200_OK
+            )
+
+        return Response(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+
+class AdminPlatformStatsAPIView(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsAdmin
+    ]
+
+    def get(self, request):
+
+        total_users = User.objects.count()
+
+        total_employers = Employer.objects.count()
+
+        total_candidates = Candidate.objects.count()
+
+        total_jobs = Job.objects.count()
+
+        active_jobs = Job.objects.filter(
+            is_active=True
+        ).count()
+
+        inactive_jobs = Job.objects.filter(
+            is_active=False
+        ).count()
+
+        total_applications = Application.objects.count()
+
+        return Response(
+            {
+                "total_users": total_users,
+                "total_employers": total_employers,
+                "total_candidates": total_candidates,
+                "total_jobs": total_jobs,
+                "active_jobs": active_jobs,
+                "inactive_jobs": inactive_jobs,
+                "total_applications": total_applications
+            },
+            status=status.HTTP_200_OK
+        )
+
+
+class AdminAuditLogAPIView(ListAPIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsAdmin
+    ]
+
+    serializer_class = AdminAuditLogSerializer
+
+    queryset = AdminAuditLog.objects.select_related(
+        "admin"
+    ).order_by(
+        "-created_at"
+    )

@@ -247,3 +247,21 @@ class ApplicationTimeline(models.Model):
     def __str__(self):
 
         return f"{self.application} - {self.status}"
+class AdminAuditLog(models.Model):
+
+    admin = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE
+    )
+
+    action = models.CharField(
+        max_length=200
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    def __str__(self):
+
+        return f"{self.admin.username} - {self.action}"

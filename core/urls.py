@@ -25,7 +25,14 @@ from .views import (
     SaveJobAPIView,
     SavedJobListAPIView,
     RecommendedJobAPIView,
-    ApplicationTimelineAPIView
+    ApplicationTimelineAPIView,
+    ApproveEmployerAPIView,
+    BlockUserAPIView,
+    AdminJobListAPIView,
+    DeleteJobAPIView,
+    AdminJobUpdateAPIView,
+    AdminPlatformStatsAPIView,
+    AdminAuditLogAPIView
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -148,5 +155,33 @@ path(
 path(
     'applications/<int:application_id>/timeline/',
     ApplicationTimelineAPIView.as_view()
+),
+path(
+    'api/admin/employers/<int:employer_id>/approve/',
+    ApproveEmployerAPIView.as_view()
+),
+path(
+    'api/admin/users/<int:user_id>/block/',
+    BlockUserAPIView.as_view()
+),
+path(
+    'api/admin/jobs/',
+    AdminJobListAPIView.as_view()
+),
+path(
+    'api/admin/jobs/<int:job_id>/delete/',
+    DeleteJobAPIView.as_view()
+),
+path(
+    'api/admin/jobs/<int:job_id>/update/',
+    AdminJobUpdateAPIView.as_view()
+),
+path(
+    'api/admin/platform-stats/',
+    AdminPlatformStatsAPIView.as_view()
+),
+path(
+    'api/admin/audit-logs/',
+    AdminAuditLogAPIView.as_view()
 ),
 ]

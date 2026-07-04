@@ -6,8 +6,8 @@ from .models import (
     Employer,
     Application,
     SavedJob,
-    ApplicationTimeline
-    
+    ApplicationTimeline,
+    AdminAuditLog
 )
 
 import os
@@ -247,4 +247,21 @@ class ApplicationTimelineSerializer(
         fields = [
             "status",
             "changed_at"
+        ]
+class AdminAuditLogSerializer(serializers.ModelSerializer):
+
+    admin_name = serializers.CharField(
+        source="admin.username",
+        read_only=True
+    )
+
+    class Meta:
+
+        model = AdminAuditLog
+
+        fields = [
+            "id",
+            "admin_name",
+            "action",
+            "created_at"
         ]
