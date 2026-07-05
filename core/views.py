@@ -10,6 +10,10 @@ from django_filters.rest_framework import DjangoFilterBackend
 from .models import User
 from .serializers import UserSerializer
 from django.db.models import Count
+import pdfplumber
+import docx
+
+from io import BytesIO
 
 
 from .models import (
@@ -1045,6 +1049,35 @@ class BlockUserAPIView(APIView):
             },
             status=status.HTTP_200_OK
         )
+class UnblockUserAPIView(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsAdmin
+    ]
+
+    def put(self, request, user_id):
+
+        user = User.objects.get(
+            id=user_id
+        )
+
+        user.is_active = True
+
+        user.save()
+
+        AdminAuditLog.objects.create(
+            admin=request.user,
+            action=f"Unblocked user '{user.username}'"
+        )
+
+        return Response(
+            {
+                "message": "User unblocked successfully.",
+                "is_active": user.is_active
+            },
+            status=status.HTTP_200_OK
+        )
 class AdminJobListAPIView(ListAPIView):
 
     permission_classes = [
@@ -1184,3 +1217,67 @@ class AdminAuditLogAPIView(ListAPIView):
     ).order_by(
         "-created_at"
     )
+class ResumeParserAPIView(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsCandidate
+    ]
+
+    def get(self, request):
+
+        candidate = Candidate.objects.get(
+            user=request.user
+        )
+
+        if not candidate.resume:
+
+            return Response(
+                {
+                    "error": "Resume not uploaded."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        file_path = candidate.resume.path
+
+        extracted_text = ""
+
+        if file_path.endswith(".pdf"):
+
+            with pdfplumber.open(file_path) as pdf:
+
+                for page in pdf.pages:
+
+                    text = page.extract_text()
+
+                    if text:
+
+                        extracted_text += text + "\n"
+
+        elif file_path.endswith(".docx"):
+
+            document = docx.Document(file_path)
+
+            for paragraph in document.paragraphs:
+
+                extracted_text += paragraph.text + "\n"
+
+        else:
+
+            return Response(
+                {
+                    "error": "Unsupported file format."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        cleaned_text = " ".join(
+            extracted_text.split()
+        )
+
+        return Response(
+            {
+                "resume_text": cleaned_text
+            }
+        )

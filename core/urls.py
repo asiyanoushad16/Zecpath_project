@@ -32,7 +32,9 @@ from .views import (
     DeleteJobAPIView,
     AdminJobUpdateAPIView,
     AdminPlatformStatsAPIView,
-    AdminAuditLogAPIView
+    AdminAuditLogAPIView,
+    UnblockUserAPIView,
+    ResumeParserAPIView,
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -165,6 +167,10 @@ path(
     BlockUserAPIView.as_view()
 ),
 path(
+    'api/admin/users/<int:user_id>/unblock/',
+    UnblockUserAPIView.as_view()
+),
+path(
     'api/admin/jobs/',
     AdminJobListAPIView.as_view()
 ),
@@ -183,5 +189,9 @@ path(
 path(
     'api/admin/audit-logs/',
     AdminAuditLogAPIView.as_view()
+),
+path(
+    "candidate/parse-resume/",
+    ResumeParserAPIView.as_view()
 ),
 ]
