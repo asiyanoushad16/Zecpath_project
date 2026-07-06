@@ -12,6 +12,7 @@ from .serializers import UserSerializer
 from django.db.models import Count
 import pdfplumber
 import docx
+import re
 
 from io import BytesIO
 
@@ -1280,4 +1281,156 @@ class ResumeParserAPIView(APIView):
             {
                 "resume_text": cleaned_text
             }
+        )
+class ParsedResumeAPIView(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsCandidate
+    ]
+
+    def get(self, request):
+
+        candidate = Candidate.objects.get(
+            user=request.user
+        )
+
+        if not candidate.resume:
+
+            return Response(
+                {
+                    "error": "Resume not uploaded."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        file_path = candidate.resume.path
+
+        extracted_text = ""
+
+        if file_path.endswith(".pdf"):
+
+            with pdfplumber.open(file_path) as pdf:
+
+                for page in pdf.pages:
+
+                    text = page.extract_text()
+
+                    if text:
+
+                        extracted_text += text + "\n"
+
+        elif file_path.endswith(".docx"):
+
+            document = docx.Document(file_path)
+
+            for paragraph in document.paragraphs:
+
+                extracted_text += paragraph.text + "\n"
+
+        else:
+
+            return Response(
+                {
+                    "error": "Unsupported file format."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        cleaned_text = " ".join(
+            extracted_text.split()
+        )
+
+        tokens = cleaned_text.split()
+
+        name = candidate.full_name
+
+        email = re.search(
+            r'[\w\.-]+@[\w\.-]+\.\w+',
+            cleaned_text
+        )
+
+        email = email.group() if email else ""
+
+        phone = re.search(
+            r'\b\d{10}\b',
+            cleaned_text
+        )
+
+        phone = phone.group() if phone else ""
+
+        predefined_skills = [
+            "Python",
+            "Java",
+            "C",
+            "C++",
+            "PHP",
+            "Django",
+            "Flutter",
+            "HTML",
+            "CSS",
+            "Bootstrap",
+            "JavaScript",
+            "SQL",
+            "MySQL",
+            "Git",
+            "GitHub",
+            "NumPy",
+            "Pandas",
+            "Scikit-Learn",
+            "REST API"
+        ]
+
+        extracted_skills = []
+
+        for skill in predefined_skills:
+
+            if skill.lower() in cleaned_text.lower():
+
+                extracted_skills.append(
+                    skill
+                )
+
+        education = ""
+
+        if "MCA" in cleaned_text:
+
+            education = "Master of Computer Applications"
+
+        elif "BCA" in cleaned_text:
+
+            education = "Bachelor of Computer Applications"
+
+        elif "B.Tech" in cleaned_text:
+
+            education = "Bachelor of Technology"
+
+        elif "B.A" in cleaned_text:
+
+            education = "Bachelor of Arts"
+
+        experience = re.search(
+            r'(\d+)\s+Years?',
+            cleaned_text,
+            re.IGNORECASE
+        )
+
+        if experience:
+
+            experience = experience.group()
+
+        else:
+
+            experience = "Fresher"
+
+        return Response(
+            {
+                "name": name,
+                "email": email,
+                "phone": phone,
+                "skills": extracted_skills,
+                "education": education,
+                "experience": experience
+            },
+            status=status.HTTP_200_OK
         )

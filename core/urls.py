@@ -35,6 +35,7 @@ from .views import (
     AdminAuditLogAPIView,
     UnblockUserAPIView,
     ResumeParserAPIView,
+    ParsedResumeAPIView
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -193,5 +194,9 @@ path(
 path(
     "candidate/parse-resume/",
     ResumeParserAPIView.as_view()
+),
+path(
+    'candidate/resume-parsed/',
+    ParsedResumeAPIView.as_view()
 ),
 ]
