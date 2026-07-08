@@ -35,7 +35,9 @@ from .views import (
     AdminAuditLogAPIView,
     UnblockUserAPIView,
     ResumeParserAPIView,
-    ParsedResumeAPIView
+    ParsedResumeAPIView,
+    ATSScoreAPIView,
+    RankedCandidateAPIView
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -198,5 +200,13 @@ path(
 path(
     'candidate/resume-parsed/',
     ParsedResumeAPIView.as_view()
+),
+path(
+    "applications/<int:application_id>/ats-score/",
+    ATSScoreAPIView.as_view()
+),
+path(
+    "jobs/<int:job_id>/ranked-candidates/",
+    RankedCandidateAPIView.as_view()
 ),
 ]

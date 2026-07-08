@@ -13,6 +13,7 @@ from django.db.models import Count
 import pdfplumber
 import docx
 import re
+from rest_framework.exceptions import PermissionDenied
 
 from io import BytesIO
 
@@ -1434,3 +1435,140 @@ class ParsedResumeAPIView(APIView):
             },
             status=status.HTTP_200_OK
         )
+class ATSScoreAPIView(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsEmployer
+    ]
+
+    def get(self, request, application_id):
+
+        application = Application.objects.get(
+            id=application_id
+        )
+
+        employer = Employer.objects.get(
+            user=request.user
+        )
+
+        if application.job.employer != employer:
+
+            return Response(
+                {
+                    "error": "Permission denied."
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        candidate = application.candidate
+
+        job = application.job
+
+        job_skills = [
+            skill.strip().lower()
+            for skill in job.skills.split(",")
+        ]
+
+        candidate_skills = [
+            skill.strip().lower()
+            for skill in candidate.skills.split(",")
+        ]
+
+        matched_skills = 0
+
+        for skill in job_skills:
+
+            if skill in candidate_skills:
+
+                matched_skills += 1
+
+        if len(job_skills) > 0:
+
+            skill_score = (
+                matched_skills / len(job_skills)
+            ) * 60
+
+        else:
+
+            skill_score = 0
+
+        if candidate.experience >= job.experience:
+
+            experience_score = 25
+
+        else:
+
+            experience_score = (
+                candidate.experience /
+                job.experience
+            ) * 25 if job.experience > 0 else 0
+
+        if "MCA" in candidate.education.upper():
+
+            education_score = 15
+
+        else:
+
+            education_score = 0
+
+        total_score = round(
+
+            skill_score +
+            experience_score +
+            education_score,
+
+            2
+
+        )
+
+        application.ats_score = total_score
+
+        application.save()
+
+        return Response(
+    {
+        "candidate": candidate.full_name,
+        "job": job.title,
+        "matched_skills": matched_skills,
+        "total_job_skills": len(job_skills),
+        "skill_score": skill_score,
+        "experience_score": experience_score,
+        "education_score": education_score,
+        "ats_score": total_score
+    }
+)
+class RankedCandidateAPIView(ListAPIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsEmployer
+    ]
+
+    serializer_class = ApplicationSerializer
+
+    def get_queryset(self):
+
+        employer = Employer.objects.get(
+            user=self.request.user
+        )
+
+        job = Job.objects.get(
+            id=self.kwargs["job_id"]
+        )
+
+        if job.employer != employer:
+
+            raise PermissionDenied(
+                "Permission denied."
+            )
+
+        return Application.objects.select_related(
+            "candidate",
+            "job"
+        ).filter(
+            job=job
+        ).order_by(
+            "-ats_score"
+        )
+        

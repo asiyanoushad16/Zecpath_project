@@ -199,6 +199,7 @@ class ApplicationSerializer(serializers.ModelSerializer):
             "job",
             "job_title",
             "resume_snapshot",
+            "ats_score",
             "status",
             "applied_at",
             "updated_at"

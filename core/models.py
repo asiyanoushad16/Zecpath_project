@@ -184,6 +184,9 @@ class Application(models.Model):
         blank=True,
         null=True
     )
+    ats_score = models.FloatField(
+    default=0
+    )
 
     status = models.CharField(
         max_length=30,         
