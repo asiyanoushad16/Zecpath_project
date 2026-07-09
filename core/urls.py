@@ -37,7 +37,11 @@ from .views import (
     ResumeParserAPIView,
     ParsedResumeAPIView,
     ATSScoreAPIView,
-    RankedCandidateAPIView
+    RankedCandidateAPIView,
+    AutoHiringAPIView,
+    EmployerOverrideAPIView,
+    AutoNotificationAPIView,
+    BatchAutoHiringAPIView
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -208,5 +212,21 @@ path(
 path(
     "jobs/<int:job_id>/ranked-candidates/",
     RankedCandidateAPIView.as_view()
+),
+path(
+    "applications/<int:application_id>/auto-hiring/",
+    AutoHiringAPIView.as_view()
+),
+path(
+    "applications/<int:application_id>/override/",
+    EmployerOverrideAPIView.as_view()
+),
+path(
+    "applications/<int:application_id>/notify/",
+    AutoNotificationAPIView.as_view()
+),
+path(
+    "jobs/<int:job_id>/batch-auto-hiring/",
+    BatchAutoHiringAPIView.as_view()
 ),
 ]

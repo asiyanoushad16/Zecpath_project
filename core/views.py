@@ -1571,4 +1571,252 @@ class RankedCandidateAPIView(ListAPIView):
         ).order_by(
             "-ats_score"
         )
+class AutoHiringAPIView(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsEmployer
+    ]
+
+    def put(self, request, application_id):
+
+        employer = Employer.objects.get(
+            user=request.user
+        )
+
+        application = Application.objects.get(
+            id=application_id
+        )
+
+        if application.job.employer != employer:
+
+            return Response(
+                {
+                    "error": "Permission denied."
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        score = application.ats_score
+
+        if score >= 80:
+
+            application.status = "Shortlisted"
+
+        elif score >= 60:
+
+            application.status = "Under Review"
+
+        else:
+
+            application.status = "Rejected"
+
+        application.save()
+
+        return Response(
+            {
+                "candidate": application.candidate.full_name,
+                "job": application.job.title,
+                "ats_score": score,
+                "status": application.status
+            },
+            status=status.HTTP_200_OK
+        )
+class EmployerOverrideAPIView(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsEmployer
+    ]
+
+    def put(self, request, application_id):
+
+        employer = Employer.objects.get(
+            user=request.user
+        )
+
+        application = Application.objects.get(
+            id=application_id
+        )
+
+        if application.job.employer != employer:
+
+            return Response(
+                {
+                    "error": "Permission denied."
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        new_status = request.data.get("status")
+
+        valid_status = [
+
+            "Applied",
+            "Under Review",
+            "Shortlisted",
+            "Interview Scheduled",
+            "Selected",
+            "Rejected"
+
+        ]
+
+        if new_status not in valid_status:
+
+            return Response(
+                {
+                    "error": "Invalid status."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        application.status = new_status
+
+        application.save()
+
+        return Response(
+            {
+                "message": "Application status updated by employer.",
+                "candidate": application.candidate.full_name,
+                "job": application.job.title,
+                "status": application.status
+            },
+            status=status.HTTP_200_OK
+        )
+class AutoNotificationAPIView(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsEmployer
+    ]
+
+    def get(self, request, application_id):
+
+        employer = Employer.objects.get(
+            user=request.user
+        )
+
+        application = Application.objects.get(
+            id=application_id
+        )
+
+        if application.job.employer != employer:
+
+            return Response(
+                {
+                    "error": "Permission denied."
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        if application.status == "Shortlisted":
+
+            message = (
+                f"Congratulations {application.candidate.full_name}! "
+                f"You have been shortlisted for the job "
+                f"'{application.job.title}'."
+            )
+
+        elif application.status == "Rejected":
+
+            message = (
+                f"Dear {application.candidate.full_name}, "
+                f"thank you for applying for "
+                f"'{application.job.title}'. "
+                f"Unfortunately, your application was not selected."
+            )
+
+        elif application.status == "Interview Scheduled":
+
+            message = (
+                f"Hello {application.candidate.full_name}, "
+                f"your interview has been scheduled for "
+                f"'{application.job.title}'."
+            )
+
+        elif application.status == "Selected":
+
+            message = (
+                f"Congratulations {application.candidate.full_name}! "
+                f"You have been selected for "
+                f"'{application.job.title}'."
+            )
+
+        else:
+
+            message = (
+                f"Your application for "
+                f"'{application.job.title}' "
+                f"is currently '{application.status}'."
+            )
+
+        return Response(
+            {
+                "candidate": application.candidate.full_name,
+                "job": application.job.title,
+                "status": application.status,
+                "notification": message
+            },
+            status=status.HTTP_200_OK
+        )
+class BatchAutoHiringAPIView(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsEmployer
+    ]
+
+    def put(self, request, job_id):
+
+        employer = Employer.objects.get(
+            user=request.user
+        )
+
+        job = Job.objects.get(
+            id=job_id
+        )
+
+        if job.employer != employer:
+
+            return Response(
+                {
+                    "error": "Permission denied."
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        applications = Application.objects.filter(
+            job=job
+        )
+
+        updated = 0
+
+        for application in applications:
+
+            score = application.ats_score
+
+            if score >= 80:
+
+                application.status = "Shortlisted"
+
+            elif score >= 60:
+
+                application.status = "Under Review"
+
+            else:
+
+                application.status = "Rejected"
+
+            application.save()
+
+            updated += 1
+
+        return Response(
+            {
+                "message": "Batch processing completed successfully.",
+                "job": job.title,
+                "applications_processed": updated
+            },
+            status=status.HTTP_200_OK
+        )
         
