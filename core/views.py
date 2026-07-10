@@ -14,7 +14,8 @@ import pdfplumber
 import docx
 import re
 from rest_framework.exceptions import PermissionDenied
-
+from django.core.mail import send_mail
+from django.conf import settings
 from io import BytesIO
 
 
@@ -1816,6 +1817,93 @@ class BatchAutoHiringAPIView(APIView):
                 "message": "Batch processing completed successfully.",
                 "job": job.title,
                 "applications_processed": updated
+            },
+            status=status.HTTP_200_OK
+        )
+class SendEmailAPIView(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsEmployer
+    ]
+
+    def post(self, request, application_id):
+
+        employer = Employer.objects.get(
+            user=request.user
+        )
+
+        application = Application.objects.get(
+            id=application_id
+        )
+
+        if application.job.employer != employer:
+
+            return Response(
+                {
+                    "error": "Permission denied."
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        if application.status == "Shortlisted":
+
+            subject = "Application Shortlisted"
+
+            message = (
+                f"Congratulations {application.candidate.full_name},\n\n"
+                f"You have been shortlisted for the position "
+                f"{application.job.title}."
+            )
+
+        elif application.status == "Rejected":
+
+            subject = "Application Update"
+
+            message = (
+                f"Dear {application.candidate.full_name},\n\n"
+                f"Thank you for applying for "
+                f"{application.job.title}.\n"
+                f"Unfortunately, your application was not selected."
+            )
+
+        elif application.status == "Selected":
+
+            subject = "Congratulations!"
+
+            message = (
+                f"Congratulations {application.candidate.full_name},\n\n"
+                f"You have been selected for "
+                f"{application.job.title}."
+            )
+
+        else:
+
+            subject = "Application Status"
+
+            message = (
+                f"Hello {application.candidate.full_name},\n\n"
+                f"Your application status is "
+                f"{application.status}."
+            )
+
+        send_mail(
+
+            subject,
+
+            message,
+
+            settings.EMAIL_HOST_USER,
+
+            [application.candidate.user.email],
+
+            fail_silently=False
+
+        )
+
+        return Response(
+            {
+                "message": "Email sent successfully."
             },
             status=status.HTTP_200_OK
         )

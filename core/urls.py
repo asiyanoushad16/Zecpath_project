@@ -41,7 +41,8 @@ from .views import (
     AutoHiringAPIView,
     EmployerOverrideAPIView,
     AutoNotificationAPIView,
-    BatchAutoHiringAPIView
+    BatchAutoHiringAPIView,
+    SendEmailAPIView
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -228,5 +229,9 @@ path(
 path(
     "jobs/<int:job_id>/batch-auto-hiring/",
     BatchAutoHiringAPIView.as_view()
+),
+path(
+    "applications/<int:application_id>/send-email/",
+    SendEmailAPIView.as_view()
 ),
 ]
