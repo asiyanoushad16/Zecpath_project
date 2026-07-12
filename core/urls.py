@@ -42,7 +42,8 @@ from .views import (
     EmployerOverrideAPIView,
     AutoNotificationAPIView,
     BatchAutoHiringAPIView,
-    SendEmailAPIView
+    SendEmailAPIView,
+    PerformanceReportAPIView
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -233,5 +234,9 @@ path(
 path(
     "applications/<int:application_id>/send-email/",
     SendEmailAPIView.as_view()
+),
+path(
+    "api/admin/performance-report/",
+    PerformanceReportAPIView.as_view()
 ),
 ]

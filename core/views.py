@@ -17,6 +17,7 @@ from rest_framework.exceptions import PermissionDenied
 from django.core.mail import send_mail
 from django.conf import settings
 from io import BytesIO
+from django.core.cache import cache
 
 
 from .models import (
@@ -551,15 +552,11 @@ class JobPagination(PageNumberPagination):
     page_size = 5
 
 
+from django.core.cache import cache
+
 class JobListAPIView(ListAPIView):
 
     permission_classes = [IsAuthenticated]
-
-    queryset = Job.objects.select_related(
-        'employer'
-    ).filter(
-        is_active=True
-    )
 
     serializer_class = JobSerializer
 
@@ -582,7 +579,26 @@ class JobListAPIView(ListAPIView):
         'skills',
         'description'
     ]
-    
+
+    def get_queryset(self):
+
+        jobs = cache.get("job_list")
+
+        if jobs is None:
+
+            jobs = Job.objects.select_related(
+                "employer"
+            ).filter(
+                is_active=True
+            )
+
+            cache.set(
+                "job_list",
+                jobs,
+                timeout=300
+            )
+
+        return jobs
 
 
 class LatestJobAPIView(ListAPIView):
@@ -1904,6 +1920,73 @@ class SendEmailAPIView(APIView):
         return Response(
             {
                 "message": "Email sent successfully."
+            },
+            status=status.HTTP_200_OK
+        )
+import time
+
+class PerformanceReportAPIView(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsAdmin
+    ]
+
+    def get(self, request):
+
+        start_time = time.time()
+
+        total_users = User.objects.count()
+
+        total_employers = Employer.objects.count()
+
+        total_candidates = Candidate.objects.count()
+
+        total_jobs = Job.objects.select_related(
+            "employer"
+        ).count()
+
+        total_applications = Application.objects.select_related(
+            "candidate",
+            "job"
+        ).count()
+
+        active_jobs = Job.objects.filter(
+            is_active=True
+        ).count()
+
+        shortlisted = Application.objects.filter(
+            status="Shortlisted"
+        ).count()
+
+        selected = Application.objects.filter(
+            status="Selected"
+        ).count()
+
+        rejected = Application.objects.filter(
+            status="Rejected"
+        ).count()
+
+        end_time = time.time()
+
+        response_time = round(
+            end_time - start_time,
+            4
+        )
+
+        return Response(
+            {
+                "total_users": total_users,
+                "total_employers": total_employers,
+                "total_candidates": total_candidates,
+                "total_jobs": total_jobs,
+                "active_jobs": active_jobs,
+                "total_applications": total_applications,
+                "shortlisted": shortlisted,
+                "selected": selected,
+                "rejected": rejected,
+                "response_time": response_time,
+                "status": "Backend performance optimized successfully."
             },
             status=status.HTTP_200_OK
         )

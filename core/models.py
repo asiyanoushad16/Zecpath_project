@@ -17,13 +17,15 @@ class User(AbstractUser):
     )
 
     role = models.CharField(
-        max_length=20,
-        choices=ROLE_CHOICES
-    )
+    max_length=20,
+    choices=ROLE_CHOICES,
+    db_index=True
+)
 
     is_verified = models.BooleanField(
-        default=False
-    )
+    default=False,
+    db_index=True
+)
 
     created_at = models.DateTimeField(
         auto_now_add=True
@@ -45,7 +47,8 @@ class Employer(models.Model):
     )
 
     location = models.CharField(
-        max_length=100
+    max_length=100
+   
     )
 
     domain = models.CharField(
@@ -55,13 +58,15 @@ class Employer(models.Model):
     company_size = models.IntegerField()
 
     verified = models.BooleanField(
-        default=False
-    )
+    default=False,
+    db_index=True
+)
+
 
     is_active = models.BooleanField(
-        default=True
-    )
-
+    default=True,
+    db_index=True
+)
     def __str__(self):
         return self.company_name
 
@@ -82,14 +87,16 @@ class Candidate(models.Model):
     )
 
     experience = models.IntegerField(
-        default=0
-    )
+    default=0,
+    db_index=True
+)
 
     expected_salary = models.IntegerField()
 
     is_active = models.BooleanField(
-        default=True
-    )
+    default=True,
+    db_index=True
+)
 
     resume = models.FileField(
         upload_to='resumes/',
@@ -109,11 +116,10 @@ class Job(models.Model):
         ('Internship', 'Internship'),
     ]
 
-    employer = models.ForeignKey(
-        Employer,
-        on_delete=models.CASCADE,
-        related_name='jobs'
-    )
+    location = models.CharField(
+    max_length=100,
+    db_index=True
+)
 
     title = models.CharField(
         max_length=100,
@@ -138,12 +144,14 @@ class Job(models.Model):
     )
 
     featured = models.BooleanField(
-    default=False
-    )
+    default=False,
+    db_index=True
+)
     
     is_active = models.BooleanField(
-        default=True
-    )
+    default=True,
+    db_index=True
+)
     
   
 
@@ -170,14 +178,16 @@ class Application(models.Model):
     ]
 
     candidate = models.ForeignKey(
-        Candidate,
-        on_delete=models.CASCADE
-    )
+    Candidate,
+    on_delete=models.CASCADE,
+    db_index=True
+)
 
     job = models.ForeignKey(
-        Job,
-        on_delete=models.CASCADE
-    )
+    Job,
+    on_delete=models.CASCADE,
+    db_index=True
+)
 
     resume_snapshot = models.FileField(
         upload_to='application_resumes/',
@@ -185,14 +195,16 @@ class Application(models.Model):
         null=True
     )
     ats_score = models.FloatField(
-    default=0
-    )
+    default=0,
+    db_index=True
+)
 
     status = models.CharField(
-        max_length=30,         
-        choices=STATUS_CHOICES,
-        default='Applied'
-    )
+    max_length=30,
+    choices=STATUS_CHOICES,
+    default="Applied",
+    db_index=True
+)
 
     applied_at = models.DateTimeField(
         auto_now_add=True
@@ -207,14 +219,16 @@ class Application(models.Model):
 class SavedJob(models.Model):
 
     candidate = models.ForeignKey(
-        Candidate,
-        on_delete=models.CASCADE
-    )
+    Candidate,
+    on_delete=models.CASCADE,
+    db_index=True
+)
 
     job = models.ForeignKey(
-        Job,
-        on_delete=models.CASCADE
-    )
+    Job,
+    on_delete=models.CASCADE,
+    db_index=True
+)
 
     saved_at = models.DateTimeField(
         auto_now_add=True
@@ -233,11 +247,11 @@ class SavedJob(models.Model):
 class ApplicationTimeline(models.Model):
 
     application = models.ForeignKey(
-        Application,
-        on_delete=models.CASCADE,
-        related_name="timeline"
-    )
-
+    Application,
+    on_delete=models.CASCADE,
+    related_name="timeline",
+    db_index=True
+)
     status = models.CharField(
         max_length=30,
         choices=Application.STATUS_CHOICES
@@ -253,9 +267,10 @@ class ApplicationTimeline(models.Model):
 class AdminAuditLog(models.Model):
 
     admin = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE
-    )
+    User,
+    on_delete=models.CASCADE,
+    db_index=True
+)
 
     action = models.CharField(
         max_length=200
