@@ -43,7 +43,10 @@ from .views import (
     AutoNotificationAPIView,
     BatchAutoHiringAPIView,
     SendEmailAPIView,
-    PerformanceReportAPIView
+    PerformanceReportAPIView,
+    AITriggerAPIView,
+    CallStatusAPIView,
+    UpdateCallStatusAPIView
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -238,5 +241,19 @@ path(
 path(
     "api/admin/performance-report/",
     PerformanceReportAPIView.as_view()
+),
+path(
+    "ai-call/<int:pk>/",
+    AITriggerAPIView.as_view()
+),
+
+path(
+    "call-status/<int:pk>/",
+    CallStatusAPIView.as_view()
+),
+
+path(
+    "update-call-status/<int:pk>/",
+    UpdateCallStatusAPIView.as_view()
 ),
 ]

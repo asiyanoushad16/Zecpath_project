@@ -18,6 +18,9 @@ from django.core.mail import send_mail
 from django.conf import settings
 from io import BytesIO
 from django.core.cache import cache
+from .models import Application
+from .services import AIEligibilityService
+from .tasks import process_ai_call
 
 
 from .models import (
@@ -1616,11 +1619,11 @@ class AutoHiringAPIView(APIView):
 
         score = application.ats_score
 
-        if score >= 80:
+        if score >= 60:
 
             application.status = "Shortlisted"
 
-        elif score >= 60:
+        elif score >= 50:
 
             application.status = "Under Review"
 
@@ -1990,4 +1993,62 @@ class PerformanceReportAPIView(APIView):
             },
             status=status.HTTP_200_OK
         )
+
+from .services import AIEligibilityService, AISchedulerService
+
+
+class AITriggerAPIView(APIView):
+    
+    permission_classes = [IsAuthenticated, IsEmployer]
+
+    def post(self, request, pk):
+
+        application = Application.objects.get(id=pk)
+
+        if not AIEligibilityService.check(application):
+
+            return Response({
+                "message": "Candidate Not Eligible"
+            })
+
+        application.ai_call_status = "Queued"
+        application.save()
+
+        AISchedulerService.schedule_call(application)
+
+        return Response({
+
+            "message": "AI Call Scheduled",
+
+            "status": application.ai_call_status
+
+        })
+class CallStatusAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+
+        application = Application.objects.get(id=pk)
+
+        return Response({
+            "candidate": application.candidate.user.username,
+            "ats_score": application.ats_score,
+            "status": application.status,
+            "call_status": application.ai_call_status
+        })
+class UpdateCallStatusAPIView(APIView):
+    permission_classes = [IsAuthenticated, IsEmployer]
+
+    def put(self, request, pk):
+
+        application = Application.objects.get(id=pk)
+
+        application.ai_call_status = request.data.get("status")
+
+        application.save()
+
+        return Response({
+            "message": "Call Status Updated Successfully"
+        })
+
         

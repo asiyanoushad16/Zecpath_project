@@ -108,18 +108,22 @@ class Candidate(models.Model):
         return self.full_name
 
 
+from django.db import models
+
+
 class Job(models.Model):
 
     JOB_TYPE_CHOICES = [
-        ('Full Time', 'Full Time'),
-        ('Part Time', 'Part Time'),
-        ('Internship', 'Internship'),
+        ("Full Time", "Full Time"),
+        ("Part Time", "Part Time"),
+        ("Internship", "Internship"),
     ]
 
-    location = models.CharField(
-    max_length=100,
-    db_index=True
-)
+    employer = models.ForeignKey(
+        "Employer",
+        on_delete=models.CASCADE,
+        related_name="jobs"
+    )
 
     title = models.CharField(
         max_length=100,
@@ -135,7 +139,8 @@ class Job(models.Model):
     salary = models.IntegerField()
 
     location = models.CharField(
-        max_length=100
+        max_length=100,
+        db_index=True
     )
 
     job_type = models.CharField(
@@ -144,16 +149,14 @@ class Job(models.Model):
     )
 
     featured = models.BooleanField(
-    default=False,
-    db_index=True
-)
-    
+        default=False,
+        db_index=True
+    )
+
     is_active = models.BooleanField(
-    default=True,
-    db_index=True
-)
-    
-  
+        default=True,
+        db_index=True
+    )
 
     created_at = models.DateTimeField(
         auto_now_add=True
@@ -165,7 +168,6 @@ class Job(models.Model):
 
     def __str__(self):
         return self.title
-
 class Application(models.Model):
 
     STATUS_CHOICES = [
@@ -177,34 +179,59 @@ class Application(models.Model):
         ('Rejected', 'Rejected'),
     ]
 
+    CALL_STATUS_CHOICES = [
+        ('Queued', 'Queued'),
+        ('In Progress', 'In Progress'),
+        ('Completed', 'Completed'),
+        ('Failed', 'Failed'),
+    ]
+
     candidate = models.ForeignKey(
-    Candidate,
-    on_delete=models.CASCADE,
-    db_index=True
-)
+        Candidate,
+        on_delete=models.CASCADE,
+        db_index=True
+    )
 
     job = models.ForeignKey(
-    Job,
-    on_delete=models.CASCADE,
-    db_index=True
-)
+        Job,
+        on_delete=models.CASCADE,
+        db_index=True
+    )
 
     resume_snapshot = models.FileField(
         upload_to='application_resumes/',
         blank=True,
         null=True
     )
+
     ats_score = models.FloatField(
-    default=0,
-    db_index=True
-)
+        default=0,
+        db_index=True
+    )
 
     status = models.CharField(
-    max_length=30,
-    choices=STATUS_CHOICES,
-    default="Applied",
-    db_index=True
-)
+        max_length=30,
+        choices=STATUS_CHOICES,
+        default="Applied",
+        db_index=True
+    )
+
+
+    candidate_available = models.BooleanField(
+        default=True
+    )
+
+    ai_call_status = models.CharField(
+        max_length=20,
+        choices=CALL_STATUS_CHOICES,
+        default="Queued"
+    )
+
+    
+    call_scheduled_at = models.DateTimeField(
+        null=True,
+        blank=True
+    )
 
     applied_at = models.DateTimeField(
         auto_now_add=True
