@@ -310,3 +310,128 @@ class AdminAuditLog(models.Model):
     def __str__(self):
 
         return f"{self.admin.username} - {self.action}"
+class AIInterviewSession(models.Model):
+
+    STATUS_CHOICES = [
+        ("Scheduled", "Scheduled"),
+        ("In Progress", "In Progress"),
+        ("Completed", "Completed"),
+        ("Failed", "Failed"),
+    ]
+
+    application = models.ForeignKey(
+        Application,
+        on_delete=models.CASCADE,
+        related_name="interview_sessions"
+    )
+
+    candidate = models.ForeignKey(
+        Candidate,
+        on_delete=models.CASCADE
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="Scheduled"
+    )
+
+    started_at = models.DateTimeField(
+        null=True,
+        blank=True
+    )
+
+    ended_at = models.DateTimeField(
+        null=True,
+        blank=True
+    )
+
+    transcript = models.JSONField(
+        default=dict,
+        blank=True
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    def __str__(self):
+        return f"Session {self.id} - {self.candidate.full_name}"
+
+
+class AIQuestion(models.Model):
+
+    session = models.ForeignKey(
+        AIInterviewSession,
+        on_delete=models.CASCADE,
+        related_name="questions"
+    )
+
+    question = models.TextField()
+
+    asked_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    def __str__(self):
+        return self.question
+
+
+class AIAnswer(models.Model):
+
+    question = models.ForeignKey(
+        AIQuestion,
+        on_delete=models.CASCADE,
+        related_name="answers"
+    )
+
+    answer = models.TextField()
+
+    answered_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    def __str__(self):
+        return self.answer[:50]
+
+
+class CallLog(models.Model):
+
+    ACTION_CHOICES = [
+        ("Triggered", "Triggered"),
+        ("Started", "Started"),
+        ("Question Asked", "Question Asked"),
+        ("Answer Received", "Answer Received"),
+        ("Completed", "Completed"),
+        ("Failed", "Failed"),
+    ]
+
+    session = models.ForeignKey(
+        AIInterviewSession,
+        on_delete=models.CASCADE,
+        related_name="logs"
+    )
+
+    triggered_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+
+    action = models.CharField(
+        max_length=30,
+        choices=ACTION_CHOICES
+    )
+
+    reason = models.TextField(
+        blank=True,
+        null=True
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    def __str__(self):
+        return f"{self.action} - Session {self.session.id}"
