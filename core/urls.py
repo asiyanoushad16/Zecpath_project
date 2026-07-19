@@ -46,7 +46,11 @@ from .views import (
     PerformanceReportAPIView,
     AITriggerAPIView,
     CallStatusAPIView,
-    UpdateCallStatusAPIView
+    UpdateCallStatusAPIView,
+    GenerateQuestionAPIView,
+    SpeechToTextAPIView,
+    TextToSpeechAPIView,
+    TriggerCallAPIView
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -256,4 +260,23 @@ path(
     "update-call-status/<int:pk>/",
     UpdateCallStatusAPIView.as_view()
 ),
+path(
+        "ai/question/",
+        GenerateQuestionAPIView.as_view()
+    ),
+
+path(
+        "ai/stt/",
+        SpeechToTextAPIView.as_view()
+    ),
+
+path(
+        "ai/tts/",
+        TextToSpeechAPIView.as_view()
+    ),
+
+path(
+        "ai/call/",
+        TriggerCallAPIView.as_view()
+    ),
 ]

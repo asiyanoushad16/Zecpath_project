@@ -1,4 +1,8 @@
 from .models import Application
+import os
+import time
+from django.conf import settings
+
 
 
 class AIEligibilityService:
@@ -19,6 +23,7 @@ class AIEligibilityService:
             return False
 
         return True
+    
 
 
 
@@ -47,4 +52,138 @@ class AISchedulerService:
             return "Queued"
 
         return "Outside Business Hours"
+
+
+
+class AIBridgeService:
+
+    @staticmethod
+    def generate_question(candidate_name):
+
+        try:
+            # Replace this with actual LLM API later
+            return {
+                "success": True,
+                "question": f"Hello {candidate_name}, tell me about yourself."
+            }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+    @staticmethod
+    def speech_to_text(audio_file):
+
+        try:
+            # Replace with Whisper / Google STT
+            return {
+                "success": True,
+                "text": "Sample speech converted to text."
+            }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+    @staticmethod
+    def text_to_speech(text):
+
+        try:
+            # Replace with Google TTS / Azure later
+            return {
+                "success": True,
+                "audio_url": "voice_output.mp3"
+            }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+    @staticmethod
+    def trigger_call(phone):
+
+        try:
+            # Replace with Twilio/Exotel later
+            return {
+                "success": True,
+                "message": f"Calling {phone}"
+            }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+class AIBridgeService:
+
+    @staticmethod
+    def generate_question(candidate_name):
+
+        try:
+            # Replace this with actual LLM API later
+            return {
+                "success": True,
+                "question": f"Hello {candidate_name}, tell me about yourself."
+            }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+    @staticmethod
+    def speech_to_text(audio_file):
+
+        try:
+            # Replace with Whisper / Google STT
+            return {
+                "success": True,
+                "text": "Sample speech converted to text."
+            }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+    @staticmethod
+    def text_to_speech(text):
+
+        try:
+            # Replace with Google TTS / Azure later
+            return {
+                "success": True,
+                "audio_url": "voice_output.mp3"
+            }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+    @staticmethod
+    def trigger_call(phone):
+
+        try:
+            # Replace with Twilio/Exotel later
+            return {
+                "success": True,
+                "message": f"Calling {phone}"
+            }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
+            }
 

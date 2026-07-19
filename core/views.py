@@ -21,6 +21,7 @@ from django.core.cache import cache
 from .models import Application
 from .services import AIEligibilityService
 from .tasks import process_ai_call
+from .services import AIBridgeService
 
 
 from .models import (
@@ -2050,5 +2051,45 @@ class UpdateCallStatusAPIView(APIView):
         return Response({
             "message": "Call Status Updated Successfully"
         })
+class GenerateQuestionAPIView(APIView):
+
+    def post(self, request):
+
+        candidate = request.data.get("candidate")
+
+        result = AIBridgeService.generate_question(candidate)
+
+        return Response(result)
+class SpeechToTextAPIView(APIView):
+
+    def post(self, request):
+
+        audio = request.data.get("audio")
+
+        result = AIBridgeService.speech_to_text(audio)
+
+        return Response(result)
+class TextToSpeechAPIView(APIView):
+
+    def post(self, request):
+
+        text = request.data.get("text")
+
+        result = AIBridgeService.text_to_speech(text)
+
+        return Response(result)
+class TriggerCallAPIView(APIView):
+    permission_classes = [
+        IsAuthenticated,
+        IsEmployer
+    ]
+
+    def post(self, request):
+
+        phone = request.data.get("phone")
+
+        result = AIBridgeService.trigger_call(phone)
+
+        return Response(result)
 
         
