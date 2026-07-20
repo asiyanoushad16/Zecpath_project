@@ -435,3 +435,41 @@ class CallLog(models.Model):
 
     def __str__(self):
         return f"{self.action} - Session {self.session.id}"
+class QuestionTemplate(models.Model):
+
+    CATEGORY_CHOICES = [
+        ("Introduction", "Introduction"),
+        ("Experience", "Experience"),
+        ("Skills", "Skills"),
+        ("Availability", "Availability"),
+        ("Salary", "Salary"),
+    ]
+
+    category = models.CharField(
+        max_length=30,
+        choices=CATEGORY_CHOICES
+    )
+
+    question = models.TextField()
+
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.question
+class JobQuestionMapping(models.Model):
+
+    job = models.ForeignKey(
+        Job,
+        on_delete=models.CASCADE,
+        related_name="question_mappings"
+    )
+
+    question = models.ForeignKey(
+        QuestionTemplate,
+        on_delete=models.CASCADE
+    )
+
+    order = models.IntegerField(default=1)
+
+    def __str__(self):
+        return f"{self.job.title} - {self.question.question}"

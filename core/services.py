@@ -2,6 +2,8 @@ from .models import Application
 import os
 import time
 from django.conf import settings
+from .models import AIQuestion
+from .models import JobQuestionMapping
 
 
 
@@ -187,3 +189,48 @@ class AIBridgeService:
                 "error": str(e)
             }
 
+
+
+class QuestionEngineService:
+
+    @staticmethod
+    def get_next_question(session):
+
+        mappings = JobQuestionMapping.objects.filter(
+            job=session.application.job
+        ).order_by("order")
+
+        asked_count = session.questions.count()
+
+        if asked_count >= mappings.count():
+            return None
+
+        return mappings[asked_count].question
+
+
+
+class AIFlowManager:
+
+    @staticmethod
+    def ask_next_question(session):
+
+        question_template = QuestionEngineService.get_next_question(session)
+
+        if question_template is None:
+
+            session.status = "Completed"
+            session.save()
+
+            return {
+                "message": "Interview Completed"
+            }
+
+        question = AIQuestion.objects.create(
+            session=session,
+            question=question_template.question
+        )
+
+        return {
+            "question_id": question.id,
+            "question": question.question
+        }

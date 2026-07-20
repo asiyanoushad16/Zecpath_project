@@ -2091,5 +2091,61 @@ class TriggerCallAPIView(APIView):
         result = AIBridgeService.trigger_call(phone)
 
         return Response(result)
+from .models import Application, AIInterviewSession
+from .services import AIFlowManager
+
+
+class StartInterviewAPIView(APIView):
+
+    permission_classes = [IsAuthenticated, IsEmployer]
+
+    def post(self, request, application_id):
+
+        application = Application.objects.get(id=application_id)
+
+        session = AIInterviewSession.objects.create(
+            application=application,
+            candidate=application.candidate
+        )
+
+        return Response({
+            "message": "Interview Started",
+            "session_id": session.id
+        })
+from .models import AIInterviewSession
+
+
+class NextQuestionAPIView(APIView):
+
+    permission_classes = [IsAuthenticated, IsCandidate]
+
+    def get(self, request, session_id):
+
+        session = AIInterviewSession.objects.get(id=session_id)
+
+        result = AIFlowManager.ask_next_question(session)
+
+        return Response(result)
+from .models import AIQuestion, AIAnswer
+
+
+class SubmitAnswerAPIView(APIView):
+
+    permission_classes = [IsAuthenticated, IsCandidate]
+
+    def post(self, request, question_id):
+
+        question = AIQuestion.objects.get(id=question_id)
+
+        answer = request.data.get("answer")
+
+        AIAnswer.objects.create(
+            question=question,
+            answer=answer
+        )
+
+        return Response({
+            "message": "Answer Submitted Successfully"
+        })
 
         

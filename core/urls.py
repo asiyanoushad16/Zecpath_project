@@ -50,7 +50,12 @@ from .views import (
     GenerateQuestionAPIView,
     SpeechToTextAPIView,
     TextToSpeechAPIView,
-    TriggerCallAPIView
+    TriggerCallAPIView,
+    StartInterviewAPIView,
+    NextQuestionAPIView,
+    SubmitAnswerAPIView
+    
+    
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -278,5 +283,22 @@ path(
 path(
         "ai/call/",
         TriggerCallAPIView.as_view()
+    ),
+path(
+        "interview/start/<int:application_id>/",
+        StartInterviewAPIView.as_view(),
+        name="start-interview"
+    ),
+
+    path(
+        "interview/next/<int:session_id>/",
+        NextQuestionAPIView.as_view(),
+        name="next-question"
+    ),
+
+    path(
+        "interview/answer/<int:question_id>/",
+        SubmitAnswerAPIView.as_view(),
+        name="submit-answer"
     ),
 ]
