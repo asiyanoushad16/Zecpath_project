@@ -22,6 +22,7 @@ from .models import Application
 from .services import AIEligibilityService
 from .tasks import process_ai_call
 from .services import AIBridgeService
+from .services import AnswerEvaluationService
 
 
 from .models import (
@@ -2137,15 +2138,63 @@ class SubmitAnswerAPIView(APIView):
 
         question = AIQuestion.objects.get(id=question_id)
 
-        answer = request.data.get("answer")
+        answer_text = request.data.get("answer")
 
-        AIAnswer.objects.create(
+        result = AnswerEvaluationService.evaluate(
+            question.question,
+            answer_text
+        )
+
+        answer = AIAnswer.objects.create(
             question=question,
-            answer=answer
+            answer=answer_text,
+            confidence=result["confidence"],
+            relevance_score=result["relevance"],
+            completeness_score=result["completeness"],
+            keyword_score=result["keyword"],
+            final_score=result["final"],
+            feedback=result["feedback"]
         )
 
         return Response({
-            "message": "Answer Submitted Successfully"
-        })
 
-        
+            "message": "Answer Submitted",
+
+            "answer_id": answer.id,
+
+            "relevance_score": answer.relevance_score,
+
+            "completeness_score": answer.completeness_score,
+
+            "keyword_score": answer.keyword_score,
+
+            "final_score": answer.final_score,
+
+            "feedback": answer.feedback
+
+        })
+class AnswerScoreAPIView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, answer_id):
+
+        answer = AIAnswer.objects.get(id=answer_id)
+
+        return Response({
+
+            "answer": answer.answer,
+
+            "confidence": answer.confidence,
+
+            "relevance_score": answer.relevance_score,
+
+            "completeness_score": answer.completeness_score,
+
+            "keyword_score": answer.keyword_score,
+
+            "final_score": answer.final_score,
+
+            "feedback": answer.feedback
+
+        })

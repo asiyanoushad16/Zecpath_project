@@ -53,7 +53,8 @@ from .views import (
     TriggerCallAPIView,
     StartInterviewAPIView,
     NextQuestionAPIView,
-    SubmitAnswerAPIView
+    SubmitAnswerAPIView,
+    AnswerScoreAPIView
     
     
 )
@@ -301,4 +302,8 @@ path(
         SubmitAnswerAPIView.as_view(),
         name="submit-answer"
     ),
+path(
+    "interview/score/<int:answer_id>/",
+    AnswerScoreAPIView.as_view()
+),
 ]

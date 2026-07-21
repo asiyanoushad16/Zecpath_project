@@ -234,3 +234,56 @@ class AIFlowManager:
             "question_id": question.id,
             "question": question.question
         }
+class AnswerEvaluationService:
+
+    @staticmethod
+    def evaluate(question, answer):
+
+        expected_keywords = [
+            "python",
+            "django",
+            "database",
+            "api",
+            "orm",
+            "sql",
+            "authentication",
+            "jwt",
+            "model",
+            "query"
+        ]
+
+        answer_lower = answer.lower()
+
+        matched = 0
+
+        for word in expected_keywords:
+            if word in answer_lower:
+                matched += 1
+
+        keyword_score = (matched / len(expected_keywords)) * 10
+
+        relevance_score = 8 if matched > 2 else 4
+
+        completeness_score = 9 if len(answer.split()) > 20 else 5
+
+        final_score = (
+            relevance_score * 0.5 +
+            completeness_score * 0.3 +
+            keyword_score * 0.2
+        )
+
+        feedback = "Excellent Answer"
+
+        if final_score < 5:
+            feedback = "Needs Improvement"
+
+        confidence = 95
+
+        return {
+            "confidence": confidence,
+            "relevance": relevance_score,
+            "completeness": completeness_score,
+            "keyword": keyword_score,
+            "final": round(final_score, 2),
+            "feedback": feedback
+        }

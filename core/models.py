@@ -387,12 +387,19 @@ class AIAnswer(models.Model):
 
     answer = models.TextField()
 
-    answered_at = models.DateTimeField(
-        auto_now_add=True
-    )
+    confidence = models.FloatField(default=0)
 
-    def __str__(self):
-        return self.answer[:50]
+    relevance_score = models.FloatField(default=0)
+
+    completeness_score = models.FloatField(default=0)
+
+    keyword_score = models.FloatField(default=0)
+
+    final_score = models.FloatField(default=0)
+
+    feedback = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
 
 
 class CallLog(models.Model):
