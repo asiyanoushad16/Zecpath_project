@@ -23,6 +23,8 @@ from .services import AIEligibilityService
 from .tasks import process_ai_call
 from .services import AIBridgeService
 from .services import AnswerEvaluationService
+from .services import SchedulingService
+
 
 
 from .models import (
@@ -33,7 +35,9 @@ from .models import (
     Application,
     SavedJob,
     ApplicationTimeline,
-    AdminAuditLog
+    AdminAuditLog,
+    InterviewSchedule,
+    AvailabilitySlot
 )
 
 from .serializers import (
@@ -2198,3 +2202,125 @@ class AnswerScoreAPIView(APIView):
             "feedback": answer.feedback
 
         })
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+
+from .models import Application, User
+from .permissions import IsEmployer
+from .services import SchedulingService
+
+
+class ScheduleInterviewAPIView(APIView):
+
+    permission_classes = [IsAuthenticated, IsEmployer]
+
+    def post(self, request, application_id):
+
+        application = Application.objects.get(id=application_id)
+
+        interviewer_id = request.data.get("interviewer")
+
+        interviewer = User.objects.get(id=interviewer_id)
+
+        result = SchedulingService.schedule_interview(
+            application,
+            interviewer
+        )
+
+        return Response(result)
+class AvailableSlotsAPIView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, interviewer_id):
+
+        interviewer = User.objects.get(id=interviewer_id)
+
+        slots = SchedulingService.get_available_slots(interviewer)
+
+        data = []
+
+        for slot in slots:
+            data.append({
+                "id": slot.id,
+                "date": slot.date,
+                "start_time": slot.start_time,
+                "end_time": slot.end_time
+            })
+
+        return Response(data)
+class RescheduleInterviewAPIView(APIView):
+
+    permission_classes = [IsAuthenticated, IsEmployer]
+
+    def post(self, request, interview_id):
+
+        interview = InterviewSchedule.objects.get(id=interview_id)
+
+        slot_id = request.data.get("slot")
+
+        new_slot = AvailabilitySlot.objects.get(id=slot_id)
+
+        result = SchedulingService.reschedule_interview(
+            interview,
+            new_slot
+        )
+
+        return Response(result)
+class CancelInterviewAPIView(APIView):
+
+    permission_classes = [IsAuthenticated, IsEmployer]
+
+    def post(self, request, interview_id):
+
+        interview = InterviewSchedule.objects.get(id=interview_id)
+
+        result = SchedulingService.cancel_interview(interview)
+
+        return Response(result)
+class SendInterviewEmailAPIView(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsEmployer
+    ]
+
+    def post(self, request, interview_id):
+
+        interview = InterviewSchedule.objects.get(
+            id=interview_id
+        )
+
+        application = interview.application
+
+        send_mail(
+            subject="Interview Scheduled",
+
+            message=(
+                f"Hello {application.candidate.full_name},\n\n"
+                f"Your interview has been scheduled successfully.\n\n"
+                f"Interview Details:\n"
+                f"Job: {application.job.title}\n"
+                f"Date: {interview.interview_date}\n"
+                f"Time: {interview.interview_time}\n"
+                f"Meeting Link: {interview.meeting_link}\n\n"
+                f"Best Regards,\n"
+                f"HR Team"
+            ),
+
+            from_email=settings.EMAIL_HOST_USER,
+
+            recipient_list=[
+                application.candidate.user.email
+            ],
+
+            fail_silently=False
+        )
+
+        return Response(
+            {
+                "message": "Interview email sent successfully."
+            },
+            status=status.HTTP_200_OK
+        )

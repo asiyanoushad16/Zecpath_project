@@ -4,6 +4,9 @@ import time
 from django.conf import settings
 from .models import AIQuestion
 from .models import JobQuestionMapping
+from .models import AvailabilitySlot, InterviewSchedule
+from django.core.mail import send_mail
+from django.conf import settings
 
 
 
@@ -286,4 +289,150 @@ class AnswerEvaluationService:
             "keyword": keyword_score,
             "final": round(final_score, 2),
             "feedback": feedback
+        }
+
+
+
+
+
+
+
+
+
+class SchedulingService:
+
+    @staticmethod
+    def schedule_interview(application, interviewer):
+
+        slot = AvailabilitySlot.objects.filter(
+            interviewer=interviewer,
+            is_booked=False
+        ).order_by("date", "start_time").first()
+
+        if not slot:
+            return {
+                "success": False,
+                "message": "No available slots."
+            }
+
+        slot.is_booked = True
+        slot.save()
+
+        interview = InterviewSchedule.objects.create(
+            application=application,
+            interviewer=interviewer,
+            interview_date=slot.date,
+            interview_time=slot.start_time,
+            status="Scheduled",
+            meeting_link="https://meet.google.com/sample-link"
+        )
+
+        
+        SchedulingService.send_notification(
+            application,
+            interview
+        )
+
+        return {
+            "success": True,
+            "message": "Interview Scheduled Successfully",
+            "interview_id": interview.id,
+            "date": interview.interview_date,
+            "time": interview.interview_time
+        }
+
+    @staticmethod
+    def get_available_slots(interviewer):
+
+        slots = AvailabilitySlot.objects.filter(
+            interviewer=interviewer,
+            is_booked=False
+        ).order_by("date", "start_time")
+
+        return slots
+
+    @staticmethod
+    def reschedule_interview(interview, new_slot):
+
+        if new_slot.is_booked:
+            return {
+                "success": False,
+                "message": "Selected slot is already booked."
+            }
+
+        old_slot = AvailabilitySlot.objects.get(
+            interviewer=interview.interviewer,
+            date=interview.interview_date,
+            start_time=interview.interview_time
+        )
+
+        old_slot.is_booked = False
+        old_slot.save()
+
+        new_slot.is_booked = True
+        new_slot.save()
+
+        interview.interview_date = new_slot.date
+        interview.interview_time = new_slot.start_time
+        interview.status = "Rescheduled"
+        interview.save()
+
+        return {
+            "success": True,
+            "message": "Interview Rescheduled Successfully"
+        }
+
+    @staticmethod
+    def cancel_interview(interview):
+
+        slot = AvailabilitySlot.objects.get(
+            interviewer=interview.interviewer,
+            date=interview.interview_date,
+            start_time=interview.interview_time
+        )
+
+        slot.is_booked = False
+        slot.save()
+
+        interview.status = "Cancelled"
+        interview.save()
+
+        return {
+            "success": True,
+            "message": "Interview Cancelled Successfully"
+        }
+
+    @staticmethod
+    def validate_slot(slot):
+
+        if slot.is_booked:
+            return False
+
+        return True
+
+    @staticmethod
+    def send_notification(application, interview):
+
+        candidate = application.candidate
+
+        send_mail(
+            subject="Interview Scheduled",
+            message=(
+                f"Hello {candidate.full_name},\n\n"
+                f"Your interview has been scheduled successfully.\n\n"
+                f"Interview Details:\n"
+                f"Date: {interview.interview_date}\n"
+                f"Time: {interview.interview_time}\n"
+                f"Meeting Link: {interview.meeting_link}\n\n"
+                f"Best Regards,\n"
+                f"HR Team"
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[candidate.user.email],
+            fail_silently=False,
+        )
+
+        return {
+            "success": True,
+            "message": "Interview notification sent successfully."
         }

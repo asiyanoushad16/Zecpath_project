@@ -477,6 +477,56 @@ class JobQuestionMapping(models.Model):
     )
 
     order = models.IntegerField(default=1)
-
     def __str__(self):
         return f"{self.job.title} - {self.question.question}"
+from django.db import models
+
+class InterviewSchedule(models.Model):
+
+    STATUS_CHOICES = [
+        ("Scheduled", "Scheduled"),
+        ("Completed", "Completed"),
+        ("Cancelled", "Cancelled"),
+        ("Rescheduled", "Rescheduled"),
+    ]
+
+    application = models.ForeignKey(
+        Application,
+        on_delete=models.CASCADE
+    )
+
+    interviewer = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE
+    )
+
+    interview_date = models.DateField()
+
+    interview_time = models.TimeField()
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="Scheduled"
+    )
+
+    meeting_link = models.URLField(
+        blank=True,
+        null=True
+    )
+
+
+class AvailabilitySlot(models.Model):
+
+    interviewer = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE
+    )
+
+    date = models.DateField()
+
+    start_time = models.TimeField()
+
+    end_time = models.TimeField()
+
+    is_booked = models.BooleanField(default=False)

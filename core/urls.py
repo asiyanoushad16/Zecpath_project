@@ -54,7 +54,13 @@ from .views import (
     StartInterviewAPIView,
     NextQuestionAPIView,
     SubmitAnswerAPIView,
-    AnswerScoreAPIView
+    AnswerScoreAPIView,
+    ScheduleInterviewAPIView,
+    AvailableSlotsAPIView,
+    RescheduleInterviewAPIView,
+    CancelInterviewAPIView,
+    SendInterviewEmailAPIView
+    
     
     
 )
@@ -305,5 +311,28 @@ path(
 path(
     "interview/score/<int:answer_id>/",
     AnswerScoreAPIView.as_view()
+),
+path(
+    "interview/schedule/<int:application_id>/",
+    ScheduleInterviewAPIView.as_view(),
+),
+
+path(
+    "interview/slots/<int:interviewer_id>/",
+    AvailableSlotsAPIView.as_view(),
+),
+
+path(
+    "interview/reschedule/<int:interview_id>/",
+    RescheduleInterviewAPIView.as_view(),
+),
+
+path(
+    "interview/cancel/<int:interview_id>/",
+    CancelInterviewAPIView.as_view(),
+),
+path(
+    "interview/<int:interview_id>/send-email/",
+    SendInterviewEmailAPIView.as_view(),
 ),
 ]
