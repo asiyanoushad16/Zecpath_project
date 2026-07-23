@@ -177,3 +177,11 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 
 CELERY_TIMEZONE = "Asia/Kolkata"
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    "daily-interview-reminder": {
+        "task": "core.tasks.send_scheduled_reminders",
+        "schedule": crontab(minute="*"),  
+    },
+}

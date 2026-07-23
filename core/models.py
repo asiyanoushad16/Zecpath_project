@@ -530,3 +530,15 @@ class AvailabilitySlot(models.Model):
     end_time = models.TimeField()
 
     is_booked = models.BooleanField(default=False)
+class ReminderLog(models.Model):
+
+    interview = models.ForeignKey(
+        InterviewSchedule,
+        on_delete=models.CASCADE
+    )
+
+    sent_at = models.DateTimeField(auto_now_add=True)
+
+    status = models.CharField(max_length=20)
+
+    message = models.TextField(blank=True)

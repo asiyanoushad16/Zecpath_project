@@ -24,6 +24,7 @@ from .tasks import process_ai_call
 from .services import AIBridgeService
 from .services import AnswerEvaluationService
 from .services import SchedulingService
+from .email_services import send_reminder_email
 
 
 
@@ -37,7 +38,8 @@ from .models import (
     ApplicationTimeline,
     AdminAuditLog,
     InterviewSchedule,
-    AvailabilitySlot
+    AvailabilitySlot,
+     ReminderLog
 )
 
 from .serializers import (
@@ -2324,3 +2326,79 @@ class SendInterviewEmailAPIView(APIView):
             },
             status=status.HTTP_200_OK
         )
+
+
+class SendReminderAPIView(APIView):
+
+    permission_classes = [IsAuthenticated, IsEmployer]
+
+    def post(self, request, interview_id):
+
+        try:
+            interview = InterviewSchedule.objects.get(id=interview_id)
+
+        except InterviewSchedule.DoesNotExist:
+            return Response(
+                {
+                    "success": False,
+                    "message": "Interview not found."
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        application = interview.application
+        candidate = application.candidate
+
+        try:
+            send_mail(
+                subject="Interview Reminder",
+
+                message=f"""
+Hello {candidate.full_name},
+
+This is a reminder for your upcoming interview.
+
+Date : {interview.interview_date}
+Time : {interview.interview_time}
+Meeting Link : {interview.meeting_link}
+
+Please join on time.
+
+Best Regards,
+HR Team
+""",
+
+                from_email=settings.EMAIL_HOST_USER,
+                recipient_list=[candidate.user.email],
+                fail_silently=False,
+            )
+
+            ReminderLog.objects.create(
+                interview=interview,
+                status="Sent",
+                message="Reminder email sent successfully."
+            )
+
+            return Response(
+                {
+                    "success": True,
+                    "message": "Reminder email sent successfully."
+                },
+                status=status.HTTP_200_OK
+            )
+
+        except Exception as e:
+
+            ReminderLog.objects.create(
+                interview=interview,
+                status="Failed",
+                message=str(e)
+            )
+
+            return Response(
+                {
+                    "success": False,
+                    "message": str(e)
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

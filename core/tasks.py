@@ -1,4 +1,9 @@
 from celery import shared_task
+from django.utils import timezone
+from datetime import timedelta
+
+from .models import InterviewSchedule, ReminderLog
+from .email_services import send_reminder_email
 
 import time
 
@@ -67,3 +72,35 @@ def process_ai_call(self, application_id):
             exc=exc,
             countdown=30
         )
+
+@shared_task
+def send_scheduled_reminders():
+
+    tomorrow = timezone.now().date() + timedelta(days=1)
+
+    interviews = InterviewSchedule.objects.filter(
+        interview_date=tomorrow,
+        status="Scheduled"
+    )
+
+    for interview in interviews:
+
+        try:
+
+            send_reminder_email(interview)
+
+            ReminderLog.objects.create(
+                interview=interview,
+                status="Sent",
+                message="Automatic reminder sent."
+            )
+
+        except Exception as e:
+
+            ReminderLog.objects.create(
+                interview=interview,
+                status="Failed",
+                message=str(e)
+            )
+
+    return "Completed"
