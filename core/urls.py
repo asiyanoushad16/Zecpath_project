@@ -60,7 +60,8 @@ from .views import (
     RescheduleInterviewAPIView,
     CancelInterviewAPIView,
     SendInterviewEmailAPIView,
-    SendReminderAPIView
+    SendReminderAPIView,
+    CandidateReportAPIView
     
     
     
@@ -340,5 +341,10 @@ path(
     "interview/<int:interview_id>/send-reminder/",
     SendReminderAPIView.as_view(),
     name="send-reminder",
+),
+path(
+    "reports/<int:application_id>/",
+    CandidateReportAPIView.as_view(),
+    name="candidate-report",
 )
 ]

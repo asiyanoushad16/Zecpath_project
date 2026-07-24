@@ -5,9 +5,10 @@ from django.conf import settings
 from .models import AIQuestion
 from .models import JobQuestionMapping
 from .models import AvailabilitySlot, InterviewSchedule
+from .models import AIInterviewSession, AIAnswer
 from django.core.mail import send_mail
 from django.conf import settings
-
+from django.db.models import Avg
 
 
 class AIEligibilityService:
@@ -291,14 +292,6 @@ class AnswerEvaluationService:
             "feedback": feedback
         }
 
-
-
-
-
-
-
-
-
 class SchedulingService:
 
     @staticmethod
@@ -436,34 +429,115 @@ class SchedulingService:
             "success": True,
             "message": "Interview notification sent successfully."
         }
-    from django.core.mail import send_mail
-from django.conf import settings
 
 
-def send_reminder_email(interview):
 
-    application = interview.application
-    candidate = application.candidate
+class AIReportService:
 
-    send_mail(
-        subject="Interview Reminder",
-        message=f"""
-Hello {candidate.full_name},
+    @staticmethod
+    def generate_report(application):
 
-This is a reminder for your upcoming interview.
+        print("=" * 50)
+        print("Application ID:", application.id)
 
-Interview Date : {interview.interview_date}
-Interview Time : {interview.interview_time}
+        session = AIInterviewSession.objects.filter(
+            application=application,
+            status="Completed"
+        ).last()
 
-Meeting Link:
-{interview.meeting_link}
+        print("Session:", session)
 
-Please join on time.
+        if not session:
+            print("No completed session found.")
+            return {
+                "success": False,
+                "message": "Interview session not completed."
+            }
 
-Best Regards,
-HR Team
-""",
-        from_email=settings.EMAIL_HOST_USER,
-        recipient_list=[candidate.user.email],
-        fail_silently=False,
-    )
+        questions = session.questions.all()
+
+        print("Questions Count:", questions.count())
+
+        for question in questions:
+            print("Question ID:", question.id)
+            print("Question:", question.question)
+
+        answers = AIAnswer.objects.filter(
+            question__session=session
+        )
+
+        print("Answers Count:", answers.count())
+
+        for answer in answers:
+            print("Answer ID:", answer.id)
+            print("Answer:", answer.answer)
+
+        if not answers.exists():
+            return {
+                "success": False,
+                "message": "No interview answers found."
+            }
+
+        stats = answers.aggregate(
+            avg_confidence=Avg("confidence"),
+            avg_relevance=Avg("relevance_score"),
+            avg_completeness=Avg("completeness_score"),
+            avg_keyword=Avg("keyword_score"),
+            avg_final=Avg("final_score"),
+        )
+
+        ats_score = application.ats_score
+        ai_score = round(stats["avg_final"] or 0, 2)
+
+        strengths = []
+        risks = []
+
+        if ats_score >= 80:
+            strengths.append("Strong resume match")
+        else:
+            risks.append("Resume ATS score is below expectation")
+
+        if (stats["avg_keyword"] or 0) >= 7:
+            strengths.append("Good technical knowledge")
+        else:
+            risks.append("Weak technical keyword coverage")
+
+        if (stats["avg_completeness"] or 0) >= 7:
+            strengths.append("Provides detailed answers")
+        else:
+            risks.append("Answers need more detail")
+
+        if (stats["avg_relevance"] or 0) >= 7:
+            strengths.append("Answers are relevant")
+        else:
+            risks.append("Some answers lack relevance")
+
+        if ai_score >= 8:
+            recommendation = "Highly Recommended"
+        elif ai_score >= 6:
+            recommendation = "Recommended"
+        else:
+            recommendation = "Needs Review"
+
+        summary = (
+            f"The candidate achieved an ATS score of {ats_score:.2f} "
+            f"and an AI interview score of {ai_score:.2f}. "
+            f"Overall Recommendation: {recommendation}."
+        )
+
+        print("=" * 50)
+
+        return {
+            "candidate": application.candidate.full_name,
+            "job": application.job.title,
+            "ats_score": ats_score,
+            "ai_call_score": ai_score,
+            "average_confidence": round(stats["avg_confidence"] or 0, 2),
+            "average_relevance": round(stats["avg_relevance"] or 0, 2),
+            "average_completeness": round(stats["avg_completeness"] or 0, 2),
+            "average_keyword_score": round(stats["avg_keyword"] or 0, 2),
+            "strengths": strengths,
+            "risks": risks,
+            "recommendation": recommendation,
+            "summary": summary,
+        }

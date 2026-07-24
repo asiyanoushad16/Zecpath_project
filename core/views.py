@@ -24,7 +24,14 @@ from .tasks import process_ai_call
 from .services import AIBridgeService
 from .services import AnswerEvaluationService
 from .services import SchedulingService
+from .services import AIReportService
 from .email_services import send_reminder_email
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+
+from .models import Application
+from .permissions import IsEmployer
 
 
 
@@ -2402,3 +2409,20 @@ HR Team
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+
+class CandidateReportAPIView(APIView):
+
+    permission_classes = [
+        IsAuthenticated,
+        IsEmployer
+    ]
+
+    def get(self, request, application_id):
+
+        application = Application.objects.get(id=application_id)
+
+        report = AIReportService.generate_report(application)
+
+        return Response(report)
