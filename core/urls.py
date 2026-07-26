@@ -61,11 +61,14 @@ from .views import (
     CancelInterviewAPIView,
     SendInterviewEmailAPIView,
     SendReminderAPIView,
-    CandidateReportAPIView
-    
-    
-    
+    CandidateReportAPIView,
+    HiringFunnelAPIView,
+    JobWisePerformanceAPIView,
+    ConversionRatioAPIView,
+    TimeBasedStatisticsAPIView,
+    RoleBasedMetricsAPIView,
 )
+    
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
@@ -346,5 +349,35 @@ path(
     "reports/<int:application_id>/",
     CandidateReportAPIView.as_view(),
     name="candidate-report",
-)
+),
+path(
+        "analytics/funnel/",
+        HiringFunnelAPIView.as_view(),
+        name="analytics-funnel",
+),
+
+path(
+        "analytics/job-performance/",
+        JobWisePerformanceAPIView.as_view(),
+        name="job-performance",
+),
+
+path(
+        "analytics/conversion-ratios/",
+        ConversionRatioAPIView.as_view(),
+        name="conversion-ratios",
+),
+
+path(
+        "analytics/time-statistics/",
+        TimeBasedStatisticsAPIView.as_view(),
+        name="time-statistics",
+),
+
+path(
+        "analytics/role-metrics/",
+        RoleBasedMetricsAPIView.as_view(),
+        name="role-metrics",
+),
+
 ]

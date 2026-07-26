@@ -30,6 +30,9 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
+from .permissions import IsAdmin
+from .services import AnalyticsService
+
 from .models import Application
 from .permissions import IsEmployer
 
@@ -2426,3 +2429,60 @@ class CandidateReportAPIView(APIView):
         report = AIReportService.generate_report(application)
 
         return Response(report)
+
+
+
+
+class HiringFunnelAPIView(APIView):
+
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+
+        data = AnalyticsService.hiring_funnel()
+
+        return Response(data)
+
+
+class JobWisePerformanceAPIView(APIView):
+
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+
+        data = AnalyticsService.job_wise_performance()
+
+        return Response(data)
+
+
+class ConversionRatioAPIView(APIView):
+
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+
+        data = AnalyticsService.conversion_ratios()
+
+        return Response(data)
+
+
+class TimeBasedStatisticsAPIView(APIView):
+
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+
+        data = AnalyticsService.time_based_statistics()
+
+        return Response(data)
+
+
+class RoleBasedMetricsAPIView(APIView):
+
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+
+        data = AnalyticsService.role_based_metrics()
+
+        return Response(data)

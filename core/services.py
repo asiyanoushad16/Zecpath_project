@@ -9,6 +9,10 @@ from .models import AIInterviewSession, AIAnswer
 from django.core.mail import send_mail
 from django.conf import settings
 from django.db.models import Avg
+from django.db.models import Count
+from django.db.models.functions import TruncMonth
+from django.core.cache import cache
+from .models import Application, Job
 
 
 class AIEligibilityService:
@@ -318,7 +322,10 @@ class SchedulingService:
             interview_time=slot.start_time,
             status="Scheduled",
             meeting_link="https://meet.google.com/sample-link"
+        
         )
+        application.status = "Interview Scheduled"
+        application.save()
 
         
         SchedulingService.send_notification(
@@ -332,6 +339,7 @@ class SchedulingService:
             "interview_id": interview.id,
             "date": interview.interview_date,
             "time": interview.interview_time
+        
         }
 
     @staticmethod
@@ -541,3 +549,117 @@ class AIReportService:
             "recommendation": recommendation,
             "summary": summary,
         }
+
+class AnalyticsService:
+
+    @staticmethod
+    def hiring_funnel():
+
+        cache_key = "hiring_funnel"
+
+        data = cache.get(cache_key)
+        if data:
+            return data
+
+        data = {
+            "applied": Application.objects.count(),
+            "shortlisted": Application.objects.filter(
+                status="Shortlisted"
+            ).count(),
+            "interviewed": Application.objects.filter(
+                status="Interview Scheduled"
+            ).count(),
+            "selected": Application.objects.filter(
+                status="Selected"
+            ).count(),
+            "rejected": Application.objects.filter(
+                status="Rejected"
+            ).count(),
+        }
+
+        cache.set(cache_key, data, timeout=300)
+
+        return data
+
+    @staticmethod
+    def job_wise_performance():
+
+        jobs = Job.objects.all()
+
+        result = []
+
+        for job in jobs:
+
+            applications = Application.objects.filter(job=job)
+
+            result.append({
+                "job_id": job.id,
+                "job_title": job.title,
+                "applied": applications.count(),
+                "shortlisted": applications.filter(
+                    status="Shortlisted"
+                ).count(),
+                "interviewed": applications.filter(
+                    status="Interview Scheduled"
+                ).count(),
+                "selected": applications.filter(
+                    status="Selected"
+                ).count(),
+            })
+
+        return result
+
+    @staticmethod
+    def conversion_ratios():
+
+        
+        applied = Application.objects.count()
+
+        shortlisted = Application.objects.filter(
+            status="Shortlisted"
+        ).count()
+
+        interviewed = Application.objects.filter(
+            status="Interview Scheduled"
+        ).count()
+
+        selected = Application.objects.filter(
+            status="Selected"
+        ).count()
+
+        return {
+            "Applied_to_Shortlisted":
+                round((shortlisted / applied) * 100, 2)
+                if applied else 0,
+
+            "Shortlisted_to_Interviewed":
+                round((interviewed / shortlisted) * 100, 2)
+                if shortlisted else 0,
+
+            "Interviewed_to_Selected":
+                round((selected / interviewed) * 100, 2)
+                if interviewed else 0,
+        }
+
+    @staticmethod
+    def time_based_statistics():
+
+        return (
+            Application.objects
+            .annotate(month=TruncMonth("applied_at"))
+            .values("month")
+            .annotate(total=Count("id"))
+            .order_by("month")
+        )
+
+    @staticmethod
+    def role_based_metrics():
+
+        return (
+            Application.objects
+            .values("job__title")
+            .annotate(
+                total_applications=Count("id")
+            )
+            .order_by("-total_applications")
+        )
