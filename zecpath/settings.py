@@ -184,4 +184,68 @@ CELERY_BEAT_SCHEDULE = {
         "task": "core.tasks.send_scheduled_reminders",
         "schedule": crontab(minute="*"),  
     },
+
+}
+import os
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+
+    "formatters": {
+        "standard": {
+            "format": "[{levelname}] {asctime} {message}",
+            "style": "{",
+        },
+    },
+
+    "handlers": {
+
+        "application_file": {
+            "class": "logging.FileHandler",
+            "filename": os.path.join(BASE_DIR, "application.log"),
+            "formatter": "standard",
+        },
+
+        "error_file": {
+            "class": "logging.FileHandler",
+            "filename": os.path.join(BASE_DIR, "error.log"),
+            "formatter": "standard",
+        },
+
+        "ai_file": {
+            "class": "logging.FileHandler",
+            "filename": os.path.join(BASE_DIR, "ai.log"),
+            "formatter": "standard",
+        },
+
+        "security_file": {
+            "class": "logging.FileHandler",
+            "filename": os.path.join(BASE_DIR, "security.log"),
+            "formatter": "standard",
+        },
+    },
+
+    "loggers": {
+
+        "application": {
+            "handlers": ["application_file"],
+            "level": "INFO",
+        },
+
+        "error": {
+            "handlers": ["error_file"],
+            "level": "ERROR",
+        },
+
+        "ai": {
+            "handlers": ["ai_file"],
+            "level": "INFO",
+        },
+
+        "security": {
+            "handlers": ["security_file"],
+            "level": "WARNING",
+        },
+    },
 }

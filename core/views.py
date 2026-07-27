@@ -29,6 +29,7 @@ from .email_services import send_reminder_email
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from .logger import application_logger, error_logger, ai_logger, security_logger
 
 from .permissions import IsAdmin
 from .services import AnalyticsService
@@ -154,14 +155,32 @@ class JobCreateAPIView(APIView):
 
         if serializer.is_valid():
 
-            serializer.save(
-                employer=employer
-            )
+            try:
+                serializer.save(
+                    employer=employer
+                )
 
-            return Response(
-                serializer.data,
-                status=status.HTTP_201_CREATED
-            )
+                application_logger.info(
+                    f"Job '{serializer.instance.title}' created by {request.user.username}"
+                )
+
+                return Response(
+                    serializer.data,
+                    status=status.HTTP_201_CREATED
+                )
+
+            except Exception as e:
+
+                error_logger.error(
+                    f"Job creation failed: {str(e)}"
+                )
+
+                return Response(
+                    {
+                        "error": "Something went wrong while creating the job."
+                    },
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
 
         return Response(
             serializer.errors,
@@ -176,15 +195,33 @@ class JobUpdateAPIView(APIView):
 
     def put(self, request, job_id):
 
-        employer = Employer.objects.get(
-            user=request.user
-        )
+        try:
+            employer = Employer.objects.get(
+                user=request.user
+            )
+
+        except Employer.DoesNotExist:
+
+            security_logger.warning(
+                f"User '{request.user.username}' attempted to update a job without an employer profile."
+            )
+
+            return Response(
+                {
+                    "error": "Employer profile not found."
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
 
         job = Job.objects.get(
             id=job_id
         )
 
         if job.employer != employer:
+
+            security_logger.warning(
+                f"User '{request.user.username}' tried to update Job {job.id} without permission."
+            )
 
             return Response(
                 {
@@ -201,9 +238,30 @@ class JobUpdateAPIView(APIView):
 
         if serializer.is_valid():
 
-            serializer.save()
+            try:
 
-            return Response(serializer.data)
+                serializer.save()
+
+                application_logger.info(
+                    f"Job '{job.title}' updated by '{request.user.username}'."
+                )
+
+                return Response(
+                    serializer.data
+                )
+
+            except Exception as e:
+
+                error_logger.error(
+                    f"Job update failed for Job {job.id}: {str(e)}"
+                )
+
+                return Response(
+                    {
+                        "error": "Something went wrong while updating the job."
+                    },
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
 
         return Response(
             serializer.errors,
@@ -310,36 +368,42 @@ class ApplyJobAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        application = Application.objects.create(
-            candidate=candidate,
-            job=job,
-            resume_snapshot=candidate.resume
-        )
+        try:
 
-        ApplicationTimeline.objects.create(
-            application=application,
-            status="Applied"
-        )
+            application = Application.objects.create(
+                candidate=candidate,
+                job=job,
+                resume_snapshot=candidate.resume
+            )
 
-        return Response(
-            {
-                "message": "Application submitted successfully."
-            },
-            status=status.HTTP_201_CREATED
-        )
+            ApplicationTimeline.objects.create(
+                application=application,
+                status="Applied"
+            )
 
-        Application.objects.create(
-            candidate=candidate,
-            job=job,
-            resume_snapshot=candidate.resume
-        )
+            application_logger.info(
+                f"Candidate '{request.user.username}' applied for job '{job.title}'"
+            )
 
-        return Response(
-            {
-                "message": "Applied successfully"
-            },
-            status=status.HTTP_201_CREATED
-        )
+            return Response(
+                {
+                    "message": "Application submitted successfully."
+                },
+                status=status.HTTP_201_CREATED
+            )
+
+        except Exception as e:
+
+            error_logger.error(
+                f"Job application failed for user '{request.user.username}': {str(e)}"
+            )
+
+            return Response(
+                {
+                    "error": "Something went wrong while applying for the job."
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class CandidateProfileAPIView(APIView):
@@ -711,6 +775,10 @@ class ApplicationStatusAPIView(APIView):
 
         if application.job.employer != employer:
 
+            security_logger.warning(
+                f"{request.user.username} tried to update Application {application.id} without permission."
+            )
+
             return Response(
                 {
                     "error": "Permission denied."
@@ -765,7 +833,10 @@ class ApplicationStatusAPIView(APIView):
 
         application.save()
 
-        # Save timeline
+        application_logger.info(
+            f"Application {application.id} status changed to '{new_status}' by {request.user.username}"
+        )
+
         ApplicationTimeline.objects.create(
             application=application,
             status=new_status
@@ -2124,6 +2195,9 @@ class StartInterviewAPIView(APIView):
             application=application,
             candidate=application.candidate
         )
+        from .logger import ai_logger
+
+        ai_logger.info(f"AI interview started for Application {application.id}")
 
         return Response({
             "message": "Interview Started",
@@ -2171,6 +2245,7 @@ class SubmitAnswerAPIView(APIView):
             final_score=result["final"],
             feedback=result["feedback"]
         )
+        ai_logger.info(f"AI evaluated Question {question.id}")
 
         return Response({
 
@@ -2239,6 +2314,7 @@ class ScheduleInterviewAPIView(APIView):
             application,
             interviewer
         )
+        application_logger.info(f"Interview scheduled for Application {application.id}")
 
         return Response(result)
 class AvailableSlotsAPIView(APIView):
