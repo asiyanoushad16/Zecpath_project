@@ -36,6 +36,10 @@ from .services import AnalyticsService
 
 from .models import Application
 from .permissions import IsEmployer
+from rest_framework_simplejwt.views import TokenObtainPairView
+from .throttles import LoginRateThrottle
+
+
 
 
 
@@ -2562,3 +2566,5 @@ class RoleBasedMetricsAPIView(APIView):
         data = AnalyticsService.role_based_metrics()
 
         return Response(data)
+class CustomTokenObtainPairView(TokenObtainPairView):
+    throttle_classes = [LoginRateThrottle]
