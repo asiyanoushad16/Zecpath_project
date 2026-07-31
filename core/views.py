@@ -54,7 +54,11 @@ from .models import (
     AdminAuditLog,
     InterviewSchedule,
     AvailabilitySlot,
-     ReminderLog
+     ReminderLog,
+    SubscriptionPlan,
+    UserSubscription,
+    PaymentTransaction,
+    BillingHistory,
 )
 
 from .serializers import (
@@ -67,7 +71,11 @@ from .serializers import (
     ApplicationSerializer,
     SavedJobSerializer,
     ApplicationTimelineSerializer,
-    AdminAuditLogSerializer
+    AdminAuditLogSerializer,
+    SubscriptionPlanSerializer,
+    UserSubscriptionSerializer,
+    PaymentTransactionSerializer,
+    BillingHistorySerializer,
     
 )
 
@@ -2568,3 +2576,218 @@ class RoleBasedMetricsAPIView(APIView):
         return Response(data)
 class CustomTokenObtainPairView(TokenObtainPairView):
     throttle_classes = [LoginRateThrottle]
+    
+    
+
+
+
+
+
+
+
+class SubscriptionPlanListCreateAPIView(APIView):
+
+    def get(self, request):
+        plans = SubscriptionPlan.objects.all()
+        serializer = SubscriptionPlanSerializer(plans, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = SubscriptionPlanSerializer(data=request.data)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class SubscriptionPlanAPIView(APIView):
+
+    def get(self, request, plan_id):
+        try:
+            plan = SubscriptionPlan.objects.get(id=plan_id)
+        except SubscriptionPlan.DoesNotExist:
+            return Response({"error": "Subscription Plan not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = SubscriptionPlanSerializer(plan)
+        return Response(serializer.data)
+
+    def put(self, request, plan_id):
+        try:
+            plan = SubscriptionPlan.objects.get(id=plan_id)
+        except SubscriptionPlan.DoesNotExist:
+            return Response({"error": "Subscription Plan not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = SubscriptionPlanSerializer(plan, data=request.data)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, plan_id):
+        try:
+            plan = SubscriptionPlan.objects.get(id=plan_id)
+        except SubscriptionPlan.DoesNotExist:
+            return Response({"error": "Subscription Plan not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        plan.delete()
+        return Response({"message": "Subscription Plan deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+
+
+class UserSubscriptionListCreateAPIView(APIView):
+
+    def get(self, request):
+        subscriptions = UserSubscription.objects.all()
+        serializer = UserSubscriptionSerializer(subscriptions, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = UserSubscriptionSerializer(data=request.data)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserSubscriptionAPIView(APIView):
+
+    def get(self, request, subscription_id):
+        try:
+            subscription = UserSubscription.objects.get(id=subscription_id)
+        except UserSubscription.DoesNotExist:
+            return Response({"error": "Subscription not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = UserSubscriptionSerializer(subscription)
+        return Response(serializer.data)
+
+    def put(self, request, subscription_id):
+        try:
+            subscription = UserSubscription.objects.get(id=subscription_id)
+        except UserSubscription.DoesNotExist:
+            return Response({"error": "Subscription not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = UserSubscriptionSerializer(subscription, data=request.data)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, subscription_id):
+        try:
+            subscription = UserSubscription.objects.get(id=subscription_id)
+        except UserSubscription.DoesNotExist:
+            return Response({"error": "Subscription not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        subscription.delete()
+        return Response({"message": "Subscription deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+
+
+class PaymentTransactionListCreateAPIView(APIView):
+
+    def get(self, request):
+        payments = PaymentTransaction.objects.all()
+        serializer = PaymentTransactionSerializer(payments, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = PaymentTransactionSerializer(data=request.data)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PaymentTransactionAPIView(APIView):
+
+    def get(self, request, payment_id):
+        try:
+            payment = PaymentTransaction.objects.get(id=payment_id)
+        except PaymentTransaction.DoesNotExist:
+            return Response({"error": "Payment not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = PaymentTransactionSerializer(payment)
+        return Response(serializer.data)
+
+    def put(self, request, payment_id):
+        try:
+            payment = PaymentTransaction.objects.get(id=payment_id)
+        except PaymentTransaction.DoesNotExist:
+            return Response({"error": "Payment not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = PaymentTransactionSerializer(payment, data=request.data)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, payment_id):
+        try:
+            payment = PaymentTransaction.objects.get(id=payment_id)
+        except PaymentTransaction.DoesNotExist:
+            return Response({"error": "Payment not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        payment.delete()
+        return Response({"message": "Payment deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+
+
+class BillingHistoryListCreateAPIView(APIView):
+
+    def get(self, request):
+        billing = BillingHistory.objects.all()
+        serializer = BillingHistorySerializer(billing, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = BillingHistorySerializer(data=request.data)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class BillingHistoryAPIView(APIView):
+
+    def get(self, request, billing_id):
+        try:
+            billing = BillingHistory.objects.get(id=billing_id)
+        except BillingHistory.DoesNotExist:
+            return Response({"error": "Billing history not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = BillingHistorySerializer(billing)
+        return Response(serializer.data)
+
+    def put(self, request, billing_id):
+        try:
+            billing = BillingHistory.objects.get(id=billing_id)
+        except BillingHistory.DoesNotExist:
+            return Response({"error": "Billing history not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = BillingHistorySerializer(billing, data=request.data)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, billing_id):
+        try:
+            billing = BillingHistory.objects.get(id=billing_id)
+        except BillingHistory.DoesNotExist:
+            return Response({"error": "Billing history not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        billing.delete()
+        return Response({"message": "Billing history deleted successfully"}, status=status.HTTP_204_NO_CONTENT)

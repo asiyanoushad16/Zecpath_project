@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
-from .models import User, Employer, Candidate, Job, Application,AIInterviewSession,AIQuestion,AIAnswer,CallLog,QuestionTemplate,JobQuestionMapping,AvailabilitySlot, InterviewSchedule,ReminderLog
+from .models import User, Employer, Candidate, Job, Application,AIInterviewSession,AIQuestion,AIAnswer,CallLog,QuestionTemplate,JobQuestionMapping,AvailabilitySlot, InterviewSchedule,ReminderLog, SubscriptionPlan,UserSubscription,PaymentTransaction,BillingHistory
 
 
 
@@ -64,3 +64,7 @@ admin.site.register(JobQuestionMapping)
 admin.site.register(AvailabilitySlot)
 admin.site.register(InterviewSchedule)
 admin.site.register(ReminderLog)
+admin.site.register(SubscriptionPlan)
+admin.site.register(UserSubscription)
+admin.site.register(PaymentTransaction)
+admin.site.register(BillingHistory)

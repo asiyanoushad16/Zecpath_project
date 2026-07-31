@@ -67,7 +67,15 @@ from .views import (
     ConversionRatioAPIView,
     TimeBasedStatisticsAPIView,
     RoleBasedMetricsAPIView,
-    CustomTokenObtainPairView
+    CustomTokenObtainPairView,
+    SubscriptionPlanAPIView,
+    UserSubscriptionListCreateAPIView,
+    UserSubscriptionAPIView,
+    PaymentTransactionListCreateAPIView,
+    PaymentTransactionAPIView,
+    BillingHistoryListCreateAPIView,
+    BillingHistoryAPIView,
+    SubscriptionPlanListCreateAPIView
 )
     
 from rest_framework_simplejwt.views import (
@@ -379,6 +387,51 @@ path(
         "analytics/role-metrics/",
         RoleBasedMetricsAPIView.as_view(),
         name="role-metrics",
+),
+
+path(
+    'subscription-plans/',
+    SubscriptionPlanListCreateAPIView.as_view(),
+    name='subscription-plan-list-create'
+),
+path(
+    'subscription-plans/<int:plan_id>/',
+    SubscriptionPlanAPIView.as_view(),
+    name='subscription-plan-detail'
+),
+
+path(
+    'user-subscriptions/',
+    UserSubscriptionListCreateAPIView.as_view(),
+    name='user-subscription-list-create'
+),
+path(
+    'user-subscriptions/<int:subscription_id>/',
+    UserSubscriptionAPIView.as_view(),
+    name='user-subscription-detail'
+),
+
+path(
+    'payments/',
+    PaymentTransactionListCreateAPIView.as_view(),
+    name='payment-list-create'
+),
+path(
+    'payments/<int:payment_id>/',
+    PaymentTransactionAPIView.as_view(),
+    name='payment-detail'
+),
+
+
+path(
+    'billing-history/',
+    BillingHistoryListCreateAPIView.as_view(),
+    name='billing-history-list-create'
+),
+path(
+    'billing-history/<int:billing_id>/',
+    BillingHistoryAPIView.as_view(),
+    name='billing-history-detail'
 ),
 
 ]

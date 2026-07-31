@@ -7,7 +7,11 @@ from .models import (
     Application,
     SavedJob,
     ApplicationTimeline,
-    AdminAuditLog
+    AdminAuditLog,
+    SubscriptionPlan,
+    UserSubscription,
+    PaymentTransaction,
+    BillingHistory,
 )
 
 import os
@@ -266,3 +270,25 @@ class AdminAuditLogSerializer(serializers.ModelSerializer):
             "action",
             "created_at"
         ]
+class SubscriptionPlanSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SubscriptionPlan
+        fields = "__all__"
+
+
+class UserSubscriptionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserSubscription
+        fields = "__all__"
+
+
+class PaymentTransactionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PaymentTransaction
+        fields = "__all__"
+
+
+class BillingHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BillingHistory
+        fields = "__all__"
