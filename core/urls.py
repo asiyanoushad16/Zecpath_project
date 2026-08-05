@@ -80,6 +80,10 @@ from .views import (
     VerifyPaymentAPIView,
     CapturePaymentAPIView,
     WebhookAPIView,
+    SubscriptionValidationAPIView,
+    FeatureAccessAPIView,
+    UsageLimitAPIView,
+    PlanExpiryAPIView,
 )
 
     
@@ -460,6 +464,29 @@ path(
     "payment/webhook/",
     WebhookAPIView.as_view(),
     name="payment-webhook",
+),
+path(
+    "subscription/validate/",
+    SubscriptionValidationAPIView.as_view(),
+    name="subscription-validation",
+),
+
+path(
+    "subscription/feature-access/",
+    FeatureAccessAPIView.as_view(),
+    name="feature-access",
+),
+
+path(
+    "subscription/usage-limit/",
+    UsageLimitAPIView.as_view(),
+    name="usage-limit",
+),
+
+path(
+    "subscription/expiry-check/",
+    PlanExpiryAPIView.as_view(),
+    name="subscription-expiry-check",
 ),
 
 ]

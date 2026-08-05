@@ -2931,3 +2931,192 @@ class WebhookAPIView(APIView):
             },
             status=status.HTTP_400_BAD_REQUEST
         )
+
+from django.utils import timezone
+
+from .models import UserSubscription
+
+
+class SubscriptionValidationAPIView(APIView):
+
+    def get(self, request):
+
+        if not request.user.is_authenticated:
+
+            return Response(
+                {
+                    "message": "User not authenticated"
+                },
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        try:
+
+            subscription = UserSubscription.objects.get(
+                user=request.user
+            )
+
+        except UserSubscription.DoesNotExist:
+
+            return Response(
+                {
+                    "message": "No subscription found"
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        if subscription.end_date < timezone.now().date():
+
+            subscription.status = "EXPIRED"
+            subscription.save()
+
+        return Response(
+            {
+                "username": request.user.username,
+                "plan": subscription.plan.name,
+                "status": subscription.status,
+                "start_date": subscription.start_date,
+                "end_date": subscription.end_date,
+                "active": subscription.status == "ACTIVE"
+            },
+            status=status.HTTP_200_OK
+        )
+from .models import UserSubscription
+
+
+class FeatureAccessAPIView(APIView):
+
+    def get(self, request):
+
+        if not request.user.is_authenticated:
+
+            return Response(
+                {
+                    "message": "User not authenticated"
+                },
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        try:
+
+            subscription = UserSubscription.objects.get(
+                user=request.user,
+                status="ACTIVE"
+            )
+
+        except UserSubscription.DoesNotExist:
+
+            return Response(
+                {
+                    "message": "No active subscription found"
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        features = {
+
+            "plan": subscription.plan.name,
+
+            "job_posting": subscription.plan.max_job_posts,
+
+            "ai_analytics": subscription.plan.ai_analytics,
+
+            "candidate_access": (
+                "Unlimited"
+                if subscription.plan.name == "ENTERPRISE"
+                else "Limited"
+            )
+        }
+
+        return Response(
+            features,
+            status=status.HTTP_200_OK
+        )
+class UsageLimitAPIView(APIView):
+
+    def get(self, request):
+
+        if not request.user.is_authenticated:
+
+            return Response(
+                {
+                    "message": "User not authenticated"
+                },
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        try:
+
+            subscription = UserSubscription.objects.get(
+                user=request.user,
+                status="ACTIVE"
+            )
+
+        except UserSubscription.DoesNotExist:
+
+            return Response(
+                {
+                    "message": "No active subscription found"
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        try:
+
+            employer = Employer.objects.get(
+                user=request.user
+            )
+
+        except Employer.DoesNotExist:
+
+            return Response(
+                {
+                    "message": "Employer profile not found"
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        jobs_created = Job.objects.filter(
+            employer=employer
+        ).count()
+
+        return Response(
+            {
+                "plan": subscription.plan.name,
+                "job_post_limit": subscription.plan.max_job_posts,
+                "jobs_created": jobs_created,
+                "remaining_jobs": subscription.plan.max_job_posts - jobs_created
+            },
+            status=status.HTTP_200_OK
+        )
+
+class PlanExpiryAPIView(APIView):
+
+    def post(self, request):
+
+        subscriptions = UserSubscription.objects.filter(
+            status="ACTIVE"
+        )
+
+        expired_count = 0
+
+        for subscription in subscriptions:
+
+            if subscription.end_date < timezone.now().date():
+
+                grace_period = subscription.end_date + timedelta(days=7)
+
+                if timezone.now().date() > grace_period:
+
+                    subscription.status = "EXPIRED"
+                    subscription.save()
+
+                    expired_count += 1
+
+        return Response(
+            {
+                "message": "Subscription expiry check completed",
+                "expired_subscriptions": expired_count
+            },
+            status=status.HTTP_200_OK
+        )
