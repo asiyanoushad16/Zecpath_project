@@ -75,8 +75,13 @@ from .views import (
     PaymentTransactionAPIView,
     BillingHistoryListCreateAPIView,
     BillingHistoryAPIView,
-    SubscriptionPlanListCreateAPIView
+    SubscriptionPlanListCreateAPIView,
+    CreateOrderAPIView,
+    VerifyPaymentAPIView,
+    CapturePaymentAPIView,
+    WebhookAPIView,
 )
+
     
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -432,6 +437,29 @@ path(
     'billing-history/<int:billing_id>/',
     BillingHistoryAPIView.as_view(),
     name='billing-history-detail'
+),
+path(
+    "payment/create-order/",
+    CreateOrderAPIView.as_view(),
+    name="create-order",
+),
+
+path(
+    "payment/verify/",
+    VerifyPaymentAPIView.as_view(),
+    name="verify-payment",
+),
+
+path(
+    "payment/capture/",
+    CapturePaymentAPIView.as_view(),
+    name="capture-payment",
+),
+
+path(
+    "payment/webhook/",
+    WebhookAPIView.as_view(),
+    name="payment-webhook",
 ),
 
 ]

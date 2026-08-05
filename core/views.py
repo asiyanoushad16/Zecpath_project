@@ -38,6 +38,7 @@ from .models import Application
 from .permissions import IsEmployer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .throttles import LoginRateThrottle
+from .payment_service import create_order
 
 
 
@@ -2791,3 +2792,142 @@ class BillingHistoryAPIView(APIView):
 
         billing.delete()
         return Response({"message": "Billing history deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+
+
+
+class CreateOrderAPIView(APIView):
+
+    def post(self, request):
+
+        amount = request.data.get("amount")
+
+        if not amount:
+            return Response(
+                {"error": "Amount is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        order = create_order(int(amount))
+
+        return Response(order, status=status.HTTP_201_CREATED)
+from .payment_service import verify_payment
+
+
+class VerifyPaymentAPIView(APIView):
+
+    def post(self, request):
+
+        razorpay_order_id = request.data.get("razorpay_order_id")
+        razorpay_payment_id = request.data.get("razorpay_payment_id")
+        razorpay_signature = request.data.get("razorpay_signature")
+
+        try:
+
+            verify_payment(
+                razorpay_order_id,
+                razorpay_payment_id,
+                razorpay_signature
+            )
+
+            return Response(
+                {
+                    "message": "Payment verified successfully"
+                },
+                status=status.HTTP_200_OK
+            )
+
+        except Exception:
+
+            return Response(
+                {
+                    "message": "Payment verification failed"
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+from .payment_service import capture_payment
+
+
+class CapturePaymentAPIView(APIView):
+
+    def post(self, request):
+
+        razorpay_payment_id = request.data.get(
+            "razorpay_payment_id"
+        )
+
+        amount = request.data.get("amount")
+
+        if not razorpay_payment_id or not amount:
+
+            return Response(
+                {
+                    "error": "Payment ID and Amount are required"
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+
+            payment = capture_payment(
+                razorpay_payment_id,
+                int(amount)
+            )
+
+            return Response(
+                {
+                    "message": "Payment captured successfully",
+                    "payment": payment
+                },
+                status=status.HTTP_200_OK
+            )
+
+        except Exception as e:
+
+            return Response(
+                {
+                    "error": str(e)
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+class WebhookAPIView(APIView):
+
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, request):
+
+        event = request.data.get("event")
+
+        if event == "payment.captured":
+
+            return Response(
+                {
+                    "message": "Payment Successful"
+                },
+                status=status.HTTP_200_OK
+            )
+
+        elif event == "payment.failed":
+
+            return Response(
+                {
+                    "message": "Payment Failed"
+                },
+                status=status.HTTP_200_OK
+            )
+
+        elif event == "refund.processed":
+
+            return Response(
+                {
+                    "message": "Refund Processed"
+                },
+                status=status.HTTP_200_OK
+            )
+
+        return Response(
+            {
+                "message": "Unknown Event"
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )

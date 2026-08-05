@@ -269,3 +269,5 @@ REST_FRAMEWORK = {
         'anon': '5/minute',
     }
 }
+RAZORPAY_KEY_ID = "rzp_test_TM2f2Xeqdd0FFM"
+RAZORPAY_KEY_SECRET = "19PBJpY2UOlqrveXCE7lihJV"
