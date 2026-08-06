@@ -84,7 +84,12 @@ from .views import (
     FeatureAccessAPIView,
     UsageLimitAPIView,
     PlanExpiryAPIView,
+    PremiumRecruiterReportAPIView,
+    AdvancedAnalyticsAPIView,
+    AICandidateRankingAPIView,
+    CandidateSuccessPredictionAPIView,
 )
+
 
     
 from rest_framework_simplejwt.views import (
@@ -488,5 +493,27 @@ path(
     PlanExpiryAPIView.as_view(),
     name="subscription-expiry-check",
 ),
+path(
+    "premium/recruiter-report/",
+    PremiumRecruiterReportAPIView.as_view(),
+    name="premium-recruiter-report",
+),
 
+path(
+    "premium/advanced-analytics/",
+    AdvancedAnalyticsAPIView.as_view(),
+    name="advanced-analytics",
+),
+
+path(
+    "premium/candidate-ranking/<int:job_id>/",
+    AICandidateRankingAPIView.as_view(),
+    name="premium-candidate-ranking",
+),
+
+path(
+    "premium/candidate-success/<int:application_id>/",
+    CandidateSuccessPredictionAPIView.as_view(),
+    name="candidate-success-prediction",
+),
 ]

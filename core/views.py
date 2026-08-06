@@ -3120,3 +3120,346 @@ class PlanExpiryAPIView(APIView):
             },
             status=status.HTTP_200_OK
         )
+class PremiumRecruiterReportAPIView(APIView):
+
+    def get(self, request):
+
+        if not request.user.is_authenticated:
+
+            return Response(
+                {
+                    "message": "Authentication required"
+                },
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        if request.user.role != "employer":
+
+            return Response(
+                {
+                    "message": "Only recruiters can access this report"
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        try:
+
+            subscription = UserSubscription.objects.get(
+                user=request.user,
+                status="ACTIVE"
+            )
+
+        except UserSubscription.DoesNotExist:
+
+            return Response(
+                {
+                    "message": "Active subscription required"
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        employer = Employer.objects.get(user=request.user)
+
+        total_jobs = Job.objects.filter(
+            employer=employer
+        ).count()
+
+        total_applications = Application.objects.filter(
+            job__employer=employer
+        ).count()
+
+        shortlisted = Application.objects.filter(
+            job__employer=employer,
+            status="Shortlisted"
+        ).count()
+
+        selected = Application.objects.filter(
+            job__employer=employer,
+            status="Selected"
+        ).count()
+
+        return Response(
+            {
+                "plan": subscription.plan.name,
+                "total_jobs": total_jobs,
+                "total_applications": total_applications,
+                "shortlisted_candidates": shortlisted,
+                "selected_candidates": selected
+            },
+            status=status.HTTP_200_OK
+        )
+class AdvancedAnalyticsAPIView(APIView):
+
+    def get(self, request):
+
+        if not request.user.is_authenticated:
+
+            return Response(
+                {
+                    "message": "Authentication required"
+                },
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        if request.user.role != "employer":
+
+            return Response(
+                {
+                    "message": "Only recruiters can access analytics"
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        try:
+
+            subscription = UserSubscription.objects.get(
+                user=request.user,
+                status="ACTIVE"
+            )
+
+        except UserSubscription.DoesNotExist:
+
+            return Response(
+                {
+                    "message": "Active subscription required"
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        employer = Employer.objects.get(
+            user=request.user
+        )
+
+        total_jobs = Job.objects.filter(
+            employer=employer
+        ).count()
+
+        active_jobs = Job.objects.filter(
+            employer=employer,
+            is_active=True
+        ).count()
+
+        featured_jobs = Job.objects.filter(
+            employer=employer,
+            featured=True
+        ).count()
+
+        total_applications = Application.objects.filter(
+            job__employer=employer
+        ).count()
+
+        selected = Application.objects.filter(
+            job__employer=employer,
+            status="Selected"
+        ).count()
+
+        rejected = Application.objects.filter(
+            job__employer=employer,
+            status="Rejected"
+        ).count()
+
+        return Response(
+            {
+                "plan": subscription.plan.name,
+                "total_jobs": total_jobs,
+                "active_jobs": active_jobs,
+                "featured_jobs": featured_jobs,
+                "total_applications": total_applications,
+                "selected_candidates": selected,
+                "rejected_candidates": rejected
+            },
+            status=status.HTTP_200_OK
+        )
+class AICandidateRankingAPIView(APIView):
+
+    def get(self, request, job_id):
+
+        if not request.user.is_authenticated:
+
+            return Response(
+                {
+                    "message": "Authentication required"
+                },
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        if request.user.role != "employer":
+
+            return Response(
+                {
+                    "message": "Only recruiters can access this report"
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        try:
+
+            subscription = UserSubscription.objects.get(
+                user=request.user,
+                status="ACTIVE"
+            )
+
+        except UserSubscription.DoesNotExist:
+
+            return Response(
+                {
+                    "message": "Active subscription required"
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        try:
+
+            employer = Employer.objects.get(
+                user=request.user
+            )
+
+            job = Job.objects.get(
+                id=job_id,
+                employer=employer
+            )
+
+        except (Employer.DoesNotExist, Job.DoesNotExist):
+
+            return Response(
+                {
+                    "message": "Job not found"
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        applications = Application.objects.filter(
+            job=job
+        ).order_by("-ats_score")
+
+        ranking = []
+
+        rank = 1
+
+        for application in applications:
+
+            ranking.append({
+
+                "rank": rank,
+
+                "candidate": application.candidate.full_name,
+
+                "ats_score": application.ats_score,
+
+                "status": application.status
+
+            })
+
+            rank += 1
+
+        return Response(
+            {
+                "plan": subscription.plan.name,
+                "job": job.title,
+                "candidate_ranking": ranking
+            },
+            status=status.HTTP_200_OK
+        )
+class CandidateSuccessPredictionAPIView(APIView):
+
+    def get(self, request, application_id):
+
+        if not request.user.is_authenticated:
+
+            return Response(
+                {
+                    "message": "Authentication required"
+                },
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        if request.user.role != "employer":
+
+            return Response(
+                {
+                    "message": "Only recruiters can access this report"
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        try:
+
+            UserSubscription.objects.get(
+                user=request.user,
+                status="ACTIVE"
+            )
+
+        except UserSubscription.DoesNotExist:
+
+            return Response(
+                {
+                    "message": "Active subscription required"
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        try:
+
+            employer = Employer.objects.get(
+                user=request.user
+            )
+
+            application = Application.objects.get(
+                id=application_id,
+                job__employer=employer
+            )
+
+        except (Employer.DoesNotExist, Application.DoesNotExist):
+
+            return Response(
+                {
+                    "message": "Application not found"
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        interview = AIInterviewSession.objects.filter(
+            application=application
+        ).first()
+
+        interview_score = 0
+
+        if interview:
+
+            answers = AIAnswer.objects.filter(
+                question__session=interview
+            )
+
+            if answers.exists():
+
+                interview_score = sum(
+                    answer.final_score
+                    for answer in answers
+                ) / answers.count()
+
+        prediction_score = (
+            application.ats_score + interview_score
+        ) / 2
+
+        if prediction_score >= 80:
+
+            prediction = "High"
+
+        elif prediction_score >= 60:
+
+            prediction = "Medium"
+
+        else:
+
+            prediction = "Low"
+
+        return Response(
+            {
+                "candidate": application.candidate.full_name,
+                "ats_score": application.ats_score,
+                "interview_score": round(interview_score, 2),
+                "prediction_score": round(prediction_score, 2),
+                "success_prediction": prediction
+            },
+            status=status.HTTP_200_OK
+        )
