@@ -39,6 +39,13 @@ from .permissions import IsEmployer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .throttles import LoginRateThrottle
 from .payment_service import create_order
+from django.db.models import Sum
+
+from .models import (
+    UserSubscription,
+    PaymentTransaction,
+    BillingHistory,
+)
 
 
 
@@ -3460,6 +3467,196 @@ class CandidateSuccessPredictionAPIView(APIView):
                 "interview_score": round(interview_score, 2),
                 "prediction_score": round(prediction_score, 2),
                 "success_prediction": prediction
+            },
+            status=status.HTTP_200_OK
+        )
+
+
+
+class AdminBillingAPIView(APIView):
+
+    def get(self, request):
+
+        if not request.user.is_authenticated:
+
+            return Response(
+                {
+                    "message": "Authentication required"
+                },
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        if request.user.role != "admin":
+
+            return Response(
+                {
+                    "message": "Only admin can access billing data"
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        total_payments = PaymentTransaction.objects.count()
+
+        successful_payments = PaymentTransaction.objects.filter(
+            status="SUCCESS"
+        ).count()
+
+        failed_payments = PaymentTransaction.objects.filter(
+            status="FAILED"
+        ).count()
+
+        active_subscriptions = UserSubscription.objects.filter(
+            status="ACTIVE"
+        ).count()
+
+        billing_records = BillingHistory.objects.count()
+
+        return Response(
+            {
+                "total_payments": total_payments,
+                "successful_payments": successful_payments,
+                "failed_payments": failed_payments,
+                "active_subscriptions": active_subscriptions,
+                "billing_records": billing_records,
+            },
+            status=status.HTTP_200_OK
+        )
+class TransactionManagementAPIView(APIView):
+
+    def get(self, request):
+
+        if not request.user.is_authenticated:
+
+            return Response(
+                {
+                    "message": "Authentication required"
+                },
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        if request.user.role != "admin":
+
+            return Response(
+                {
+                    "message": "Only admin can access transactions"
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        payments = PaymentTransaction.objects.all()
+
+        transactions = []
+
+        for payment in payments:
+
+            transactions.append({
+
+                "transaction_id": payment.transaction_id,
+
+                "user": payment.user.username,
+
+                "amount": payment.amount,
+
+                "payment_method": payment.payment_method,
+
+                "status": payment.status,
+
+                "payment_date": payment.payment_date
+
+            })
+
+        subscriptions = UserSubscription.objects.all()
+
+        subscription_history = []
+
+        for subscription in subscriptions:
+
+            subscription_history.append({
+
+                "user": subscription.user.username,
+
+                "plan": subscription.plan.name,
+
+                "status": subscription.status,
+
+                "start_date": subscription.start_date,
+
+                "end_date": subscription.end_date
+
+            })
+
+        return Response(
+            {
+                "transactions": transactions,
+                "subscription_history": subscription_history
+            },
+            status=status.HTTP_200_OK
+        )
+class RevenueReportAPIView(APIView):
+
+    def get(self, request):
+
+        if not request.user.is_authenticated:
+
+            return Response(
+                {
+                    "message": "Authentication required"
+                },
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        if request.user.role != "admin":
+
+            return Response(
+                {
+                    "message": "Only admin can access revenue reports"
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        today = timezone.now().date()
+
+        daily_revenue = PaymentTransaction.objects.filter(
+            payment_date__date=today,
+            status="SUCCESS"
+        ).aggregate(
+            total=Sum("amount")
+        )["total"] or 0
+
+        monthly_revenue = PaymentTransaction.objects.filter(
+            payment_date__year=today.year,
+            payment_date__month=today.month,
+            status="SUCCESS"
+        ).aggregate(
+            total=Sum("amount")
+        )["total"] or 0
+
+        plan_revenue = []
+
+        plans = SubscriptionPlan.objects.all()
+
+        for plan in plans:
+
+            revenue = PaymentTransaction.objects.filter(
+                user__usersubscription__plan=plan,
+                status="SUCCESS"
+            ).aggregate(
+                total=Sum("amount")
+            )["total"] or 0
+
+            plan_revenue.append({
+
+                "plan": plan.name,
+
+                "revenue": revenue
+
+            })
+
+        return Response(
+            {
+                "daily_revenue": daily_revenue,
+                "monthly_revenue": monthly_revenue,
+                "plan_wise_revenue": plan_revenue
             },
             status=status.HTTP_200_OK
         )

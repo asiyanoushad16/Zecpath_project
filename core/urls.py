@@ -88,7 +88,11 @@ from .views import (
     AdvancedAnalyticsAPIView,
     AICandidateRankingAPIView,
     CandidateSuccessPredictionAPIView,
+    AdminBillingAPIView,
+    TransactionManagementAPIView,
+    RevenueReportAPIView,
 )
+
 
 
     
@@ -515,5 +519,22 @@ path(
     "premium/candidate-success/<int:application_id>/",
     CandidateSuccessPredictionAPIView.as_view(),
     name="candidate-success-prediction",
+),
+path(
+    "api/admin/billing/",
+    AdminBillingAPIView.as_view(),
+    name="admin-billing",
+),
+
+path(
+    "api/admin/transactions/",
+    TransactionManagementAPIView.as_view(),
+    name="admin-transactions",
+),
+
+path(
+    "api/admin/revenue-report/",
+    RevenueReportAPIView.as_view(),
+    name="admin-revenue-report",
 ),
 ]
