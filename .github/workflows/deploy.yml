@@ -1,0 +1,32 @@
+name: Zecpath CI
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Django check
+        env:
+          SECRET_KEY: test-secret-key
+          DEBUG: "True"
+          RAZORPAY_KEY_ID: test-key
+          RAZORPAY_KEY_SECRET: test-secret
+          EMAIL_HOST_USER: test@example.com
+          EMAIL_HOST_PASSWORD: test-password
+        run: python manage.py check
