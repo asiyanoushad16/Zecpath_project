@@ -1,4 +1,4 @@
-name: Zecpath CI
+name: Zecpath CI/CD
 
 on:
   push:
@@ -30,3 +30,24 @@ jobs:
           EMAIL_HOST_USER: test@example.com
           EMAIL_HOST_PASSWORD: test-password
         run: python manage.py check
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /home/ec2-user/zecpath_project
+            git pull origin main
+            source venv313/bin/activate
+            pip install -r requirements.txt
+            python manage.py migrate
+            python manage.py collectstatic --noinput
+            sudo systemctl restart zecpath
+            sudo systemctl reload nginx
