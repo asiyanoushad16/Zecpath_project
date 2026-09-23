@@ -79,7 +79,7 @@ python-dotenv==1.2.3
 python-engineio==4.13.3
 python-socketio==5.16.3
 pytz==2025.2
-pywin32==312
+
 pyzmq==27.1.0
 razorpay==2.0.1
 redis==8.0.1
